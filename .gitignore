@@ -66,3 +66,6 @@ src/xsens_mti_ros2_driver/lib/**/*.d.tmp
 
 # kf_3dof output bags (launch_3dof.py default)
 kf_runs/
+
+# MCAP copies made by scripts/bag_to_mcap.sh (regenerate from the .bag)
+*.mcap/
