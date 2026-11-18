@@ -63,3 +63,6 @@ src/xsens_mti_ros2_driver/lib/**/*.o
 src/xsens_mti_ros2_driver/lib/**/*.a
 src/xsens_mti_ros2_driver/lib/**/*.d
 src/xsens_mti_ros2_driver/lib/**/*.d.tmp
+
+# kf_3dof output bags (launch_3dof.py default)
+kf_runs/
