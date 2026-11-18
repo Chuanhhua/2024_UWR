@@ -39,6 +39,10 @@ opencv = "*"
 [pypi-dependencies]
 bluerobotics-ping = "*"   # brping, used by sonar_subs
 
+[activation]
+# Overlay this repo's colcon install/ so `pixi run ros2 ...` finds our packages
+scripts = ["scripts/source_ws.sh"]
+
 [activation.env]
 # Fast DDS (the Jazzy default) can't discover nodes under WSL's
 # networkingMode=mirrored; CycloneDDS works.
