@@ -55,3 +55,11 @@ CATKIN_IGNORE
 build/
 install/
 log/
+
+# Vendored Xsens SDK source must be tracked (the generic lib/ rule above hid it);
+# its build outputs are not.
+!src/xsens_mti_ros2_driver/lib/
+src/xsens_mti_ros2_driver/lib/**/*.o
+src/xsens_mti_ros2_driver/lib/**/*.a
+src/xsens_mti_ros2_driver/lib/**/*.d
+src/xsens_mti_ros2_driver/lib/**/*.d.tmp

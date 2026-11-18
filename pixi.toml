@@ -46,6 +46,8 @@ RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp"
 LIBGL_ALWAYS_SOFTWARE = "1"  # Force software rendering for OpenGL
 
 [tasks]
-build = "colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release"
+# Xsens SDK static libs must exist before colcon builds xsens_mti_ros2_driver
+xspublic = { cmd = "make -C src/xsens_mti_ros2_driver/lib/xspublic -j", outputs = ["src/xsens_mti_ros2_driver/lib/xspublic/xscontroller/libxscontroller.a"] }
+build = { cmd = "colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release", depends-on = ["xspublic"] }
 gz-test = "gz sim shapes.sdf"
 daemon = "ros2 daemon stop; ros2 daemon start"
