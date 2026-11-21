@@ -1,0 +1,26 @@
+// Sim + KF dev session. Launch from a normal terminal: scripts/deploy_sim.sh
+// Each pane opens its own `pixi shell` in the repo root (ROS sourced,
+// CycloneDDS set). deploy_sim.sh then types the sim and kf commands into
+// their panes, tmux send-keys style, without pressing Enter.
+layout {
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        children
+        pane size=2 borderless=true {
+            plugin location="zellij:status-bar"
+        }
+    }
+
+    tab name="sim" focus=true {
+        pane split_direction="vertical" {
+            pane name="sim" command="pixi" { args "shell"; }
+            pane name="kf" command="pixi" { args "shell"; }
+        }
+        pane split_direction="vertical" {
+            pane name="debug 1" command="pixi" focus=true { args "shell"; }
+            pane name="debug 2" command="pixi" { args "shell"; }
+        }
+    }
+}
