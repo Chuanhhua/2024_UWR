@@ -42,6 +42,16 @@ else()
   set(IIR_LIB iir_static)
 endif()
 
+# Planar EKF for the zig-zag-with-yaw experiment. Plain C++/Eigen, no ROS,
+# so it can be unit tested on its own.
+add_library(ekf_planar STATIC src/ekf_planar.cpp)
+target_include_directories(ekf_planar PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+target_compile_features(ekf_planar PUBLIC cxx_std_17)
+set_target_properties(ekf_planar PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 # Add executable for kalman filter
 add_executable(kf src/kf_v3_node.cpp src/kf.cpp src/kf_v3_bag_processing.cpp src/sonar_processing.cpp)
 add_executable(kf_v4 src/kf_v4_node.cpp src/kf_v4.cpp src/kf_v3_bag_processing.cpp src/sonar_processing.cpp)
@@ -130,6 +140,10 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   
   ament_lint_auto_find_test_dependencies()
+
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_ekf_planar test/test_ekf_planar.cpp)
+  target_link_libraries(test_ekf_planar ekf_planar)
 endif()
 
 # Mark this package as an ament package
