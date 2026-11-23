@@ -72,6 +72,15 @@ class EkfPlanar {
     double sonar_sigma = 0.02;     // [m] range noise std
     double gate_chi2 = 6.63;       // reject if innovation^2 / S exceeds this (99%, 1 DOF)
 
+    // Recovery from a lost filter. When one sonar is gated this many times in a
+    // row, assume the filter is wrong rather than the sonar: widen the
+    // uncertainty by the sigmas below and apply that reading ungated.
+    // 0 disables recovery.
+    int gate_reset_count = 20;        // 1 s at 20 Hz
+    double reset_pos_sigma = 0.5;     // [m] added to px and py
+    double reset_psi_sigma = 0.087;   // [rad] added to heading (5 deg)
+    double reset_vel_sigma = 0.1;     // [m/s] added to vx and vy
+
     double accel_sigma = 0.05;     // [m/s^2] accelerometer noise (also covers small biases)
     double gyro_sigma = 0.005;     // [rad/s] gyro noise
     double gyro_bias_walk = 1e-4;  // [rad/s/sqrt(s)] how fast the gyro bias may wander
@@ -79,7 +88,8 @@ class EkfPlanar {
     double sideslip_sigma = 0.01;  // Non-holonomic constraint: std of sideways body velocity [m/s]
   };
 
-  enum class SonarResult { Used, NoWall, TooOblique, OutOfRange, Gated };
+  // Recovered: the reading was used after gate_reset_count gated readings in a row
+  enum class SonarResult { Used, NoWall, TooOblique, OutOfRange, Gated, Recovered };
 
   explicit EkfPlanar(const Params& params);
 
@@ -135,4 +145,5 @@ class EkfPlanar {
   State x_;
   Cov P_;
   double last_y_ = 0.0, last_S_ = 0.0;
+  std::vector<int> gated_in_a_row_;  // per sonar, for recovery
 };

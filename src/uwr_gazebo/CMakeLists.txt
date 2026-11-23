@@ -20,6 +20,11 @@ install(PROGRAMS scripts/sonar_adapter.py
   RENAME sonar_adapter
 )
 
+install(PROGRAMS scripts/range_adapter.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME range_adapter
+)
+
 install(PROGRAMS scripts/kf_to_pool.py
   DESTINATION lib/${PROJECT_NAME}
   RENAME kf_to_pool

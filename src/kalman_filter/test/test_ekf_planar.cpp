@@ -194,6 +194,76 @@ TEST(EkfPlanarGeometry, LeftWallOnlyAndIncidenceLimit)
     EXPECT_EQ(ekf.sonar_model(x, FRONT, h), EkfPlanar::SonarResult::NoWall);       // facing away
 }
 
+TEST(EkfPlanarGeometry, ConeEdgeClipsSideWallFirst)
+{
+    // 1 m from the left wall, heading 45 deg. The front-left sonar points
+    // straight down the pool (+y), parallel to the left wall. With a 10 deg
+    // half cone, its edge clips the left wall at 1/sin(10 deg) = 5.8 m, before
+    // the centre line reaches the far end at ~7.8 m. That echo is far too
+    // oblique to model, so the reading must be rejected, not predicted as 7.8 m.
+    EkfPlanar::Params p = pool_params();
+    p.walls = {{1, 0, 0}, {-1, 0, -5}, {0, 1, 0}, {0, -1, -10}};
+    p.max_range = 30.0;
+    p.beam_half_angle = 10 * kDeg;
+    EkfPlanar ekf(p);
+    double h;
+    EXPECT_NE(ekf.sonar_model(make_state(1.0, 2.0, 45 * kDeg), FRONT_LEFT, h), EkfPlanar::SonarResult::Used);
+
+    // Far enough from the left wall, the far end is nearer: used, head on.
+    // Sonar is at y = 2 + 0.15*sqrt(2), so the range is 8 - 0.15*sqrt(2).
+    ASSERT_EQ(ekf.sonar_model(make_state(2.0, 2.0, 45 * kDeg), FRONT_LEFT, h), EkfPlanar::SonarResult::Used);
+    EXPECT_NEAR(h, 8.0 - 0.15 * std::sqrt(2.0), 1e-9);
+
+    // a thin beam has no cone, so the far end is used even near the side wall
+    p.beam_half_angle = 0.0;
+    EkfPlanar thin(p);
+    EXPECT_EQ(thin.sonar_model(make_state(1.0, 2.0, 45 * kDeg), FRONT_LEFT, h), EkfPlanar::SonarResult::Used);
+}
+
+// ------------------------------------------------------------ Recovery
+
+// The filter is 1 m wrong but confident, so it gates every true reading.
+// After gate_reset_count rejections in a row it must recover and track again.
+TEST(EkfPlanarRecovery, RecoversFromConfidentWrongPosition)
+{
+    EkfPlanar::Params p = pool_params();
+    p.walls = {{1, 0, 0}};  // left wall only
+    EkfPlanar ekf(p), truth_model(p);
+    const EkfPlanar::State truth = make_state(1.0, 5.0, 45 * kDeg);
+
+    EkfPlanar::Cov P0 = EkfPlanar::Cov::Identity() * 1e-4;  // 1 cm, 0.6 deg: far too sure
+    ekf.init(make_state(2.0, 5.0, 45 * kDeg), P0);
+
+    double h;
+    ASSERT_EQ(truth_model.sonar_model(truth, BACK_LEFT, h), EkfPlanar::SonarResult::Used);
+    for (int i = 1; i < p.gate_reset_count; ++i)
+        ASSERT_EQ(ekf.update_sonar(BACK_LEFT, h), EkfPlanar::SonarResult::Gated) << "reading " << i;
+    EXPECT_EQ(ekf.update_sonar(BACK_LEFT, h), EkfPlanar::SonarResult::Recovered);
+
+    // back on track: the next readings are accepted and x is right
+    for (int i = 0; i < 5; ++i) EXPECT_EQ(ekf.update_sonar(BACK_LEFT, h), EkfPlanar::SonarResult::Used);
+    EXPECT_NEAR(ekf.state()(EkfPlanar::PX), 1.0, 0.02);
+}
+
+TEST(EkfPlanarRecovery, OccasionalBadEchoDoesNotTriggerRecovery)
+{
+    EkfPlanar::Params p = pool_params();
+    p.walls = {{1, 0, 0}};
+    EkfPlanar ekf(p), truth_model(p);
+    const EkfPlanar::State truth = make_state(1.0, 5.0, 45 * kDeg);
+    EkfPlanar::Cov P0 = EkfPlanar::Cov::Identity() * 1e-4;
+    ekf.init(truth, P0);
+
+    double h;
+    ASSERT_EQ(truth_model.sonar_model(truth, BACK_LEFT, h), EkfPlanar::SonarResult::Used);
+    // bad echo every other reading, many times over: the good ones reset the count
+    for (int i = 0; i < 3 * p.gate_reset_count; ++i) {
+        EXPECT_EQ(ekf.update_sonar(BACK_LEFT, h + 0.5), EkfPlanar::SonarResult::Gated);
+        EXPECT_EQ(ekf.update_sonar(BACK_LEFT, h), EkfPlanar::SonarResult::Used);
+    }
+    EXPECT_NEAR(ekf.state()(EkfPlanar::PX), 1.0, 0.01);
+}
+
 // ------------------------------------------------------------ 3. Zig-zag run
 
 struct Segment {

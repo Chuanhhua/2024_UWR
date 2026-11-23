@@ -1,5 +1,6 @@
 #include "../include/ekf_planar.h"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -39,7 +40,8 @@ SonarGeom sonar_geom(const EkfPlanar::State& x, const EkfPlanar::Sonar& sonar) {
 }
 }  // namespace
 
-EkfPlanar::EkfPlanar(const Params& params) : ekf_params_(params) {
+EkfPlanar::EkfPlanar(const Params& params)
+    : ekf_params_(params), gated_in_a_row_(params.sonars.size(), 0) {
   x_.setZero();
   P_ = Cov::Identity();
 }
@@ -48,6 +50,7 @@ void EkfPlanar::init(const State& x0, const Cov& P0) {
   x_ = x0;
   x_(PSI) = wrap_angle(x_(PSI));
   P_ = P0;
+  std::fill(gated_in_a_row_.begin(), gated_in_a_row_.end(), 0);
 }
 
 double EkfPlanar::wrap_angle(double a) { return std::atan2(std::sin(a), std::cos(a)); }
@@ -187,28 +190,36 @@ EkfPlanar::SonarResult EkfPlanar::sonar_wall_model(const State& x, int sonar, co
 }
 ///  The pool has several walls and this finds the one the beam actually hits.
 EkfPlanar::SonarResult EkfPlanar::sonar_model(const State& x, int sonar, double& h, Row* H) const {
-  // The beam's first hit is the wall with the shortest distance along the beam
+  // The sonar reports the NEAREST echo anywhere in its cone, so the wall it
+  // hits is the one with the shortest cone range, not centre-line range. Near
+  // a wall, a beam running alongside it can clip it with the cone edge before
+  // the centre line reaches the wall ahead.
   const SonarGeom geom = sonar_geom(x, ekf_params_.sonars.at(sonar));
+  const double beta = std::max(0.0, ekf_params_.beam_half_angle);
   const Wall* first = nullptr;
   double best = std::numeric_limits<double>::infinity();
 
-  // For each wall, compute the distance d along the beam to the wall. If the beam is facing away
-  // from the wall or the sonar is beyond the wall, skip it. Keep track of the closest wall.
   for (const Wall& wall : ekf_params_.walls) {
     const double d = wall.nx * geom.sx + wall.ny * geom.sy -
                      wall.c;  // perpendicular distance from sonar to wall
+    if (d < 0.0) continue;    // beyond the wall
     const double cos_phi =
         -(wall.nx * geom.ux +
           wall.ny * geom.uy);  // cos of the angle between beam and wall's unit normal
-    // If facing away or beyond the wall, skip it
-    if (cos_phi <= 1e-9 || d < 0.0) continue;
-    // Update the closest wall
-    if (d / cos_phi < best) {
-      best = d / cos_phi;
+    // the ray in the cone closest to the wall's normal
+    const double edge = std::max(0.0, std::acos(std::clamp(cos_phi, -1.0, 1.0)) - beta);
+    if (edge >= M_PI / 2 - 1e-9) continue;  // no ray in the cone reaches this wall
+    const double range = d / std::cos(edge);
+    if (range < best) {
+      best = range;
       first = &wall;
     }
   }
   if (!first) return SonarResult::NoWall;
+
+  // If the nearest echo is a grazing one, sonar_wall_model rejects it
+  // (TooOblique / NoWall) rather than this reading being matched to a wall
+  // further away.
 
   const SonarResult result = sonar_wall_model(x, sonar, *first, h, H);
   if (result != SonarResult::Used) return result;
@@ -230,8 +241,29 @@ EkfPlanar::SonarResult EkfPlanar::update_sonar(int sonar, double range) {
     return SonarResult::OutOfRange;
 
   const double R = ekf_params_.sonar_sigma * ekf_params_.sonar_sigma;  // measurement noise variance
-  if (!scalar_update(range - h, H, R, ekf_params_.gate_chi2)) return SonarResult::Gated;
-  return SonarResult::Used;
+  int& gated = gated_in_a_row_[sonar];
+  if (scalar_update(range - h, H, R, ekf_params_.gate_chi2)) {
+    gated = 0;
+    return SonarResult::Used;
+  }
+
+  // Rejected. One or two in a row is a bad echo; a whole run of them means the
+  // filter itself is off and too confident to accept the truth.
+  if (ekf_params_.gate_reset_count <= 0 || ++gated < ekf_params_.gate_reset_count)
+    return SonarResult::Gated;
+
+  // Lost: admit more uncertainty, then take this reading without the gate.
+  // x_ is unchanged, so h and H still hold.
+  gated = 0;
+  const double sp = ekf_params_.reset_pos_sigma, sh = ekf_params_.reset_psi_sigma,
+               sv = ekf_params_.reset_vel_sigma;
+  P_(PX, PX) += sp * sp;
+  P_(PY, PY) += sp * sp;
+  P_(PSI, PSI) += sh * sh;
+  P_(VX, VX) += sv * sv;
+  P_(VY, VY) += sv * sv;
+  scalar_update(range - h, H, R, std::numeric_limits<double>::infinity());
+  return SonarResult::Recovered;
 }
 
 // ----- sideslip -----

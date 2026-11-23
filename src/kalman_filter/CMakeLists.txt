@@ -15,7 +15,10 @@ find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)   
 find_package(geometry_msgs REQUIRED) 
 find_package(rosbag2_cpp REQUIRED)
-find_package(message_filters REQUIRED)   
+find_package(message_filters REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
 
 # iir1 (Butterworth filters). Not packaged on conda-forge, so use an installed
 # copy if present, otherwise build it from source.
@@ -51,6 +54,13 @@ target_include_directories(ekf_planar PUBLIC
 )
 target_compile_features(ekf_planar PUBLIC cxx_std_17)
 set_target_properties(ekf_planar PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# ROS node running the planar EKF on /imu/data and /sbs
+add_executable(ekf_planar_node src/ekf_planar_node.cpp)
+target_link_libraries(ekf_planar_node ekf_planar)
+ament_target_dependencies(ekf_planar_node rclcpp sensor_msgs sonar_msgs nav_msgs std_msgs
+  geometry_msgs tf2 tf2_ros)
+install(TARGETS ekf_planar_node DESTINATION lib/${PROJECT_NAME})
 
 # Add executable for kalman filter
 add_executable(kf src/kf_v3_node.cpp src/kf.cpp src/kf_v3_bag_processing.cpp src/sonar_processing.cpp)
