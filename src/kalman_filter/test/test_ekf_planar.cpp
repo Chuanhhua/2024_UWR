@@ -3,7 +3,7 @@
 //   2. Sonar geometry gives the expected ranges for the real sonar layout.
 //   3. A simulated zig-zag run (start x=0.5, y=5, heading 45 deg from pool x)
 //      keeps wall distance and heading accurate, and the along-wall position
-//      drifts far less than integrating the IMU alone.
+//      drifts less than 15 cm.
 
 #include <gtest/gtest.h>
 
@@ -316,8 +316,9 @@ TEST(EkfPlanarZigzag, ThinBeam)
     EXPECT_LT(r.max_x_err, 0.03);                           // wall distance within 3 cm
     EXPECT_LT(r.max_psi_err, 2.0 * kDeg);                   // heading within 2 deg
     EXPECT_LT(r.final_bg_err, 0.05 * kDeg);                 // gyro bias learned
-    EXPECT_LT(r.final_y_err, 0.2 * r.final_y_err_imu_only); // along-wall drift >5x smaller
-    EXPECT_LT(r.final_y_err, 0.15);                         // and under 15 cm over ~6 m
+    // Absolute limit only: the IMU-only drift is random and sometimes lands near
+    // the truth by chance, so comparing against it fails on ~5% of seeds.
+    EXPECT_LT(r.final_y_err, 0.15);                         // along-wall drift under 15 cm over ~6 m
 }
 
 TEST(EkfPlanarZigzag, WideBeam)
@@ -330,6 +331,6 @@ TEST(EkfPlanarZigzag, WideBeam)
 
     EXPECT_LT(r.max_x_err, 0.03);
     EXPECT_LT(r.max_psi_err, 2.0 * kDeg);
-    EXPECT_LT(r.final_y_err, 0.2 * r.final_y_err_imu_only);
+    EXPECT_LT(r.final_y_err, 0.15);
 }
 }  // namespace

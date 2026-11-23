@@ -54,6 +54,8 @@ LIBGL_ALWAYS_SOFTWARE = "1"  # Force software rendering for OpenGL
 # Xsens SDK static libs must exist before colcon builds xsens_mti_ros2_driver
 xspublic = { cmd = "make -C src/xsens_mti_ros2_driver/lib/xspublic -j", outputs = ["src/xsens_mti_ros2_driver/lib/xspublic/xscontroller/libxscontroller.a"], description = "Build the vendored Xsens SDK static libraries" }
 build = { cmd = "colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release", depends-on = ["xspublic"], description = "Build the whole colcon workspace (Release)" }
+# Unit tests for the planar EKF (Jacobians, sonar geometry, simulated zig-zag run)
+test-ekf = { cmd = "colcon build --symlink-install --packages-select kalman_filter --cmake-args -DCMAKE_BUILD_TYPE=Release && colcon test --packages-select kalman_filter --ctest-args -R test_ekf_planar --event-handlers console_direct+ && colcon test-result --test-result-base build/kalman_filter --verbose", description = "Build kalman_filter and run the EKF unit tests" }
 gz-test = { cmd = "gz sim shapes.sdf", description = "Open Gazebo's demo world to check that Gazebo renders" }
 daemon = { cmd = "ros2 daemon stop; ros2 daemon start", description = "Restart the ROS 2 daemon (fixes stale topic/node lists)" }
 # Convert old .db3 KF bags to .mcap for Foxglove: pixi run to-mcap Analysis/2026_article

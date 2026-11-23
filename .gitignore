@@ -72,3 +72,6 @@ kf_runs/
 
 # Per-machine editor settings (contain local paths)
 .vscode/settings.json
+
+.cache/
+.clang*
