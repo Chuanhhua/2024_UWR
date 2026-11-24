@@ -1,11 +1,13 @@
-# Shared body of the zellij sim sessions. Not run directly: sourced by
-#   scripts/deploy_sim_3sonar.sh   3-sonar robot + kf_3dof
-#   scripts/deploy_sim_7sonar.sh   7-sonar robot + planar EKF + zig-zag driver
-# after they set SESSION and PREFILL (pane name -> command to type into it).
+# Shared body of the zellij sessions. Not run directly: sourced by
+#   scripts/deploy_sim_3sonar.sh    3-sonar sim + kf_3dof
+#   scripts/deploy_sim_7sonar.sh    7-sonar sim + planar EKF + zig-zag driver
+#   scripts/deploy_real_7sonar.sh   real 7-sonar robot + planar EKF + bag recording
+# after they set SESSION and PREFILL (pane name -> command to type into it), and
+# optionally LAYOUT (a zellij layout file; default zellij/sim.kdl).
 #
 # Starts (or reattaches to) the session, tmux send-keys style:
-#   - four panes from zellij/sim.kdl, each its own `pixi shell`:
-#     sim | kf over debug 1 | debug 2
+#   - the panes from LAYOUT, each its own `pixi shell`
+#     (zellij/sim.kdl: sim | kf over debug 1 | debug 2)
 #   - types the PREFILL commands into their panes WITHOUT pressing Enter
 #   - attaches you to the session
 # Run the deploy scripts from a normal terminal, not through pixi: zellij sits
@@ -13,14 +15,14 @@
 set -euo pipefail
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-    echo "Don't run this directly; use scripts/deploy_sim_3sonar.sh or scripts/deploy_sim_7sonar.sh" >&2
+    echo "Don't run this directly; use one of scripts/deploy_*.sh" >&2
     exit 1
 fi
 : "${SESSION:?set SESSION before sourcing}"
 declare -p PREFILL >/dev/null 2>&1 || { echo "set PREFILL before sourcing" >&2; exit 1; }
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LAYOUT="$ROOT/zellij/sim.kdl"
+LAYOUT="${LAYOUT:-$ROOT/zellij/sim.kdl}"
 CONFIG="$ROOT/zellij/config.kdl"
 # The Ctrl+q binding in config.kdl runs $UWR_ROOT/scripts/stop_sim.sh
 export UWR_ROOT="$ROOT"
