@@ -81,11 +81,11 @@
       "followMode": "follow-none",
       "cameraState": {
         "perspective": true,
-        "distance": 14,
+        "distance": 30,
         "phi": 50,
         "thetaOffset": -30,
         "targetOffset": [0, 0, -1],
-        "target": [0, 0, 0],
+        "target": [7.5, 12.5, 0],
         "targetOrientation": [0, 0, 0, 1],
         "fovy": 45,
         "near": 0.01,
@@ -97,14 +97,14 @@
         "grid": {
           "layerId": "foxglove.Grid",
           "instanceId": "grid",
-          "label": "Tank floor (z = -2)",
+          "label": "Pool floor (z = -2), 1 m squares",
           "visible": true,
           "frameId": "world",
-          "size": 10,
-          "divisions": 20,
+          "size": 25,
+          "divisions": 25,
           "lineWidth": 1,
           "color": "#8080807f",
-          "position": [0, 0, -2],
+          "position": [7.5, 12.5, -2],
           "rotation": [0, 0, 0]
         },
         "urdf": {
@@ -178,6 +178,155 @@
       "xAxisVal": "timestamp",
       "sidebarDimension": 240
     },
+    "3D!ekf3d": {
+      "followTf": "world",
+      "followMode": "follow-none",
+      "cameraState": {
+        "perspective": true,
+        "distance": 16,
+        "phi": 50,
+        "thetaOffset": -30,
+        "targetOffset": [0, 0, -1],
+        "target": [2, 12.5, 0],
+        "targetOrientation": [0, 0, 0, 1],
+        "fovy": 45,
+        "near": 0.01,
+        "far": 5000
+      },
+      "scene": {},
+      "transforms": {},
+      "layers": {
+        "grid": {
+          "layerId": "foxglove.Grid",
+          "instanceId": "grid",
+          "label": "Pool floor (z = -2), 1 m squares",
+          "visible": true,
+          "frameId": "world",
+          "size": 25,
+          "divisions": 25,
+          "lineWidth": 1,
+          "color": "#8080807f",
+          "position": [7.5, 12.5, -2],
+          "rotation": [0, 0, 0]
+        },
+        "urdf": {
+          "layerId": "foxglove.Urdf",
+          "instanceId": "urdf",
+          "label": "Robot (true pose)",
+          "visible": true,
+          "sourceType": "topic",
+          "topic": "/robot_description"
+        }
+      },
+      "topics": {
+        "/studio_script/gt_path": {
+          "visible": true,
+          "type": "line",
+          "lineWidth": 0.03,
+          "gradient": ["#2ca02cff", "#2ca02cff"]
+        },
+        "/studio_script/ekf_path": {
+          "visible": true,
+          "type": "line",
+          "lineWidth": 0.03,
+          "gradient": ["#1f77b4ff", "#1f77b4ff"]
+        }
+      }
+    },
+    "Plot!ekfx": {
+      "foxglovePanelTitle": "Pool x [m] (from left wall): truth vs EKF",
+      "paths": [
+        { "value": "/pose_topic_gt.pose.pose.position.x", "label": "truth", "enabled": true, "timestampMethod": "receiveTime" },
+        { "value": "/ekf_planar/odom.pose.pose.position.x", "label": "EKF", "enabled": true, "timestampMethod": "receiveTime" }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240
+    },
+    "Plot!ekfy": {
+      "foxglovePanelTitle": "Pool y [m] (from bottom wall): truth vs EKF",
+      "paths": [
+        { "value": "/pose_topic_gt.pose.pose.position.y", "label": "truth", "enabled": true, "timestampMethod": "receiveTime" },
+        { "value": "/ekf_planar/odom.pose.pose.position.y", "label": "EKF", "enabled": true, "timestampMethod": "receiveTime" }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240
+    },
+    "Plot!ekfyaw": {
+      "foxglovePanelTitle": "Heading [deg] (0 = facing right wall, 90 = up the pool): truth vs EKF",
+      "paths": [
+        { "value": "/studio_script/ekf_error.truth_yaw_deg", "label": "truth", "enabled": true, "timestampMethod": "receiveTime" },
+        { "value": "/studio_script/ekf_error.ekf_yaw_deg", "label": "EKF", "enabled": true, "timestampMethod": "receiveTime" }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240
+    },
+    "Plot!ekferr": {
+      "foxglovePanelTitle": "EKF position error [m] (EKF - truth)",
+      "paths": [
+        { "value": "/studio_script/ekf_error.x", "label": "x", "enabled": true, "timestampMethod": "receiveTime" },
+        { "value": "/studio_script/ekf_error.y", "label": "y", "enabled": true, "timestampMethod": "receiveTime" },
+        { "value": "/studio_script/ekf_error.dist", "label": "|error|", "enabled": true, "timestampMethod": "receiveTime" }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240
+    },
+    "Plot!ekfyawerr": {
+      "foxglovePanelTitle": "EKF heading error [deg] (EKF - truth)",
+      "paths": [
+        { "value": "/studio_script/ekf_error.yaw_deg", "label": "heading", "enabled": true, "timestampMethod": "receiveTime" }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240
+    },
+    "Plot!ekfsonar": {
+      "foxglovePanelTitle": "Sonar ranges [m] (7-sonar robot; gaps = no echo in range)",
+      "paths": [
+        { "value": "/sonar/sonar_front/range.range", "label": "front", "enabled": true, "timestampMethod": "receiveTime" },
+        { "value": "/sonar/sonar_back/range.range", "label": "back", "enabled": true, "timestampMethod": "receiveTime" },
+        { "value": "/sonar/sonar_front_left/range.range", "label": "front_left", "enabled": true, "timestampMethod": "receiveTime" },
+        { "value": "/sonar/sonar_front_right/range.range", "label": "front_right", "enabled": true, "timestampMethod": "receiveTime" },
+        { "value": "/sonar/sonar_back_left/range.range", "label": "back_left", "enabled": true, "timestampMethod": "receiveTime" },
+        { "value": "/sonar/sonar_back_right/range.range", "label": "back_right", "enabled": true, "timestampMethod": "receiveTime" }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240
+    },
     "Tab!livemain": {
       "activeTabIdx": 0,
       "tabs": [
@@ -223,6 +372,40 @@
             "direction": "row",
             "splitPercentage": 55
           }
+        },
+        {
+          "title": "Sim: truth vs planar EKF",
+          "layout": {
+            "first": "3D!ekf3d",
+            "second": {
+              "first": {
+                "first": "Plot!ekfx",
+                "second": {
+                  "first": "Plot!ekfy",
+                  "second": "Plot!ekfyaw",
+                  "direction": "column",
+                  "splitPercentage": 50.0
+                },
+                "direction": "column",
+                "splitPercentage": 33.333333333333336
+              },
+              "second": {
+                "first": "Plot!ekferr",
+                "second": {
+                  "first": "Plot!ekfyawerr",
+                  "second": "Plot!ekfsonar",
+                  "direction": "column",
+                  "splitPercentage": 50.0
+                },
+                "direction": "column",
+                "splitPercentage": 33.333333333333336
+              },
+              "direction": "row",
+              "splitPercentage": 50.0
+            },
+            "direction": "row",
+            "splitPercentage": 40
+          }
         }
       ]
     }
@@ -244,6 +427,14 @@
     "sim-kf-path": {
       "name": "kf_pool_path",
       "sourceCode": "// SIM ONLY. KF estimate trail (red) in the world frame for the 3D panel.\nimport { Input, Message } from \"./types\";\n\ntype Output = Message<\"foxglove.PosesInFrame\">;\n\nexport const inputs = [\"/kf/pool_pose\"];\nexport const output = \"/studio_script/kf_pool_path\";\n\nconst MAX_POSES = 20000;\nlet poses: Output[\"poses\"] = [];\nlet lastNs = -1;\n\nexport default function script(event: Input<\"/kf/pool_pose\">): Output {\n  const t = event.receiveTime;\n  const ns = t.sec * 1e9 + t.nsec;\n  if (ns < lastNs) {\n    poses = []; // seeked backwards: restart the trail\n  }\n  lastNs = ns;\n  const p = event.message.pose.position;\n  poses.push({ position: { x: p.x, y: p.y, z: p.z }, orientation: { x: 0, y: 0, z: 0, w: 1 } });\n  if (poses.length > MAX_POSES) {\n    poses.shift();\n  }\n  return { timestamp: t, frame_id: \"world\", poses: poses.slice() };\n}\n"
+    },
+    "sim-ekf-error": {
+      "name": "ekf_error",
+      "sourceCode": "// SIM ONLY. Planar EKF estimate minus ground truth, both in the pool (= world) frame,\n// plus both headings in degrees (Plot can't turn a quaternion into a heading).\n// Truth arrives at 50 Hz; each EKF sample is compared with the latest truth.\nimport { Input } from \"./types\";\n\ntype Output = {\n  x: number;\n  y: number;\n  dist: number;\n  yaw_deg: number;\n  truth_yaw_deg: number;\n  ekf_yaw_deg: number;\n};\ntype Quat = { x: number; y: number; z: number; w: number };\n\nexport const inputs = [\"/ekf_planar/odom\", \"/pose_topic_gt\"];\nexport const output = \"/studio_script/ekf_error\";\n\nlet truth: { x: number; y: number; yaw: number } | undefined;\n\nfunction yawDeg(q: Quat): number {\n  return (Math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z)) * 180) / Math.PI;\n}\n\nexport default function script(\n  event: Input<\"/ekf_planar/odom\"> | Input<\"/pose_topic_gt\">,\n): Output | undefined {\n  const pose = event.message.pose.pose;\n  if (event.topic === \"/pose_topic_gt\") {\n    truth = { x: pose.position.x, y: pose.position.y, yaw: yawDeg(pose.orientation) };\n    return undefined;\n  }\n  if (!truth) {\n    return undefined;\n  }\n  const yaw = yawDeg(pose.orientation);\n  const e = { x: pose.position.x - truth.x, y: pose.position.y - truth.y };\n  let dyaw = yaw - truth.yaw;\n  dyaw -= 360 * Math.round(dyaw / 360); // wrap to [-180, 180]\n  return {\n    ...e,\n    dist: Math.hypot(e.x, e.y),\n    yaw_deg: dyaw,\n    truth_yaw_deg: truth.yaw,\n    ekf_yaw_deg: yaw,\n  };\n}\n"
+    },
+    "sim-ekf-path": {
+      "name": "ekf_path",
+      "sourceCode": "// SIM ONLY. Planar EKF estimate trail (blue) in the world frame for the 3D panel.\nimport { Input, Message } from \"./types\";\n\ntype Output = Message<\"foxglove.PosesInFrame\">;\n\nexport const inputs = [\"/ekf_planar/odom\"];\nexport const output = \"/studio_script/ekf_path\";\n\nconst MAX_POSES = 20000;\nlet poses: Output[\"poses\"] = [];\nlet lastNs = -1;\n\nexport default function script(event: Input<\"/ekf_planar/odom\">): Output {\n  const t = event.receiveTime;\n  const ns = t.sec * 1e9 + t.nsec;\n  if (ns < lastNs) {\n    poses = []; // seeked backwards: restart the trail\n  }\n  lastNs = ns;\n  const p = event.message.pose.pose.position;\n  poses.push({ position: { x: p.x, y: p.y, z: p.z }, orientation: { x: 0, y: 0, z: 0, w: 1 } });\n  if (poses.length > MAX_POSES) {\n    poses.shift();\n  }\n  return { timestamp: t, frame_id: \"world\", poses: poses.slice() };\n}\n"
     }
   },
   "playbackConfig": {
