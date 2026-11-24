@@ -1,11 +1,12 @@
-// Zellij config for the sim session (scripts/deploy_sim.sh).
+// Zellij config for the sim sessions (scripts/deploy_sim_3sonar.sh, deploy_sim_7sonar.sh).
 // Anything not set here uses zellij's defaults.
 show_startup_tips false
+show_release_notes false
 
 keybinds {
     shared_except "locked" {
         // Quit cleanly: Ctrl+C every pane so ros2 launch also stops Gazebo,
-        // then close the session. UWR_ROOT is exported by deploy_sim.sh.
+        // then close the session. UWR_ROOT is exported by scripts/sim_session.sh.
         bind "Ctrl q" {
             Run "bash" "-c" "\"$UWR_ROOT/scripts/stop_sim.sh\"" {
                 floating true

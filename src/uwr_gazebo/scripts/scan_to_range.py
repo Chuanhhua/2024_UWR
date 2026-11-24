@@ -9,6 +9,7 @@ When nothing is hit, range is +inf (the Range convention for "no detection").
 import math
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan, Range
 
@@ -16,9 +17,9 @@ DEFAULT_SONARS = ['sonar_front', 'sonar_back', 'sonar_front_left', 'sonar_front_
                   'sonar_back_left', 'sonar_back_right', 'sonar_down']
 
 
-class RangeAdapter(Node):
+class ScanToRange(Node):
     def __init__(self):
-        super().__init__('range_adapter')
+        super().__init__('scan_to_range')
         names = self.declare_parameter('sonars', DEFAULT_SONARS).value
         self.pubs = {}
         for name in names:
@@ -42,8 +43,12 @@ class RangeAdapter(Node):
 
 def main():
     rclpy.init()
-    rclpy.spin(RangeAdapter())
-    rclpy.shutdown()
+    try:
+        rclpy.spin(ScanToRange())
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass                        # Ctrl+C / launch shutdown
+    finally:
+        rclpy.try_shutdown()
 
 
 if __name__ == '__main__':

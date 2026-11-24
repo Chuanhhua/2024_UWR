@@ -1,6 +1,7 @@
-// Sim + KF dev session. Launch from a normal terminal: scripts/deploy_sim.sh
+// Sim + KF dev session. Launch from a normal terminal:
+// scripts/deploy_sim_3sonar.sh or scripts/deploy_sim_7sonar.sh
 // Each pane opens its own `pixi shell` in the repo root (ROS sourced,
-// CycloneDDS set). deploy_sim.sh then types the sim and kf commands into
+// CycloneDDS set). The deploy script then types the sim and kf commands into
 // their panes, tmux send-keys style, without pressing Enter.
 layout {
     default_tab_template {

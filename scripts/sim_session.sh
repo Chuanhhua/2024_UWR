@@ -1,15 +1,24 @@
-#!/usr/bin/env bash
-# Start (or reattach to) the zellij sim session, tmux send-keys style:
+# Shared body of the zellij sim sessions. Not run directly: sourced by
+#   scripts/deploy_sim_3sonar.sh   3-sonar robot + kf_3dof
+#   scripts/deploy_sim_7sonar.sh   7-sonar robot + planar EKF + zig-zag driver
+# after they set SESSION and PREFILL (pane name -> command to type into it).
+#
+# Starts (or reattaches to) the session, tmux send-keys style:
 #   - four panes from zellij/sim.kdl, each its own `pixi shell`:
 #     sim | kf over debug 1 | debug 2
-#   - types the sim and kf commands into their panes WITHOUT pressing Enter
+#   - types the PREFILL commands into their panes WITHOUT pressing Enter
 #   - attaches you to the session
-# Run it from a normal terminal, not through pixi: zellij sits outside the
-# environment and every pane activates pixi itself.
-#   scripts/deploy_sim.sh [session-name]   (default: uwr-sim)
+# Run the deploy scripts from a normal terminal, not through pixi: zellij sits
+# outside the environment and every pane activates pixi itself.
 set -euo pipefail
 
-SESSION="${1:-uwr-sim}"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    echo "Don't run this directly; use scripts/deploy_sim_3sonar.sh or scripts/deploy_sim_7sonar.sh" >&2
+    exit 1
+fi
+: "${SESSION:?set SESSION before sourcing}"
+declare -p PREFILL >/dev/null 2>&1 || { echo "set PREFILL before sourcing" >&2; exit 1; }
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LAYOUT="$ROOT/zellij/sim.kdl"
 CONFIG="$ROOT/zellij/config.kdl"
@@ -27,14 +36,6 @@ if ! command -v zellij >/dev/null; then
     exit 1
 fi
 
-# pane name -> command to type into it
-declare -A PREFILL=(
-    # Gazebo tank sim: robot, bridge, sonar adapter, foxglove bridge
-    [sim]="ros2 launch uwr_gazebo sim.launch.py"
-    # kf_3dof on sim time plus kf_to_pool; bag goes to kf_runs/sim_*
-    [kf]='ros2 launch uwr_gazebo kf_sim.launch.py csv_path:=$PIXI_PROJECT_ROOT/kf_runs/sim_'
-)
-
 if [[ -n "${ZELLIJ:-}" ]]; then
     echo "Already inside zellij. Detach first (Ctrl+o d), then rerun." >&2
     exit 1
@@ -50,8 +51,6 @@ fi
 zellij delete-session "$SESSION" >/dev/null 2>&1 || true
 
 cd "$ROOT"
-zellij --config "$CONFIG" --layout "$LAYOUT" \
-    attach --create-background "$SESSION"
 
 # Pane IDs don't follow layout order, so look each one up by name.
 pane_id() {
@@ -99,6 +98,9 @@ prefill() {
 }
 
 # Type in the background (quietly, so it can't scribble over the zellij UI)
-# while attach takes over this terminal.
+# while zellij takes over this terminal. The session is created here, in the
+# foreground: zellij >= 0.46 can't fit a layout into a session created with
+# `attach --create-background` (it has no terminal size yet), and --layout now
+# means "add a tab to an existing session", hence --new-session-with-layout.
 prefill >/dev/null 2>&1 &
-exec zellij --config "$CONFIG" attach "$SESSION"
+exec zellij --config "$CONFIG" --session "$SESSION" --new-session-with-layout "$LAYOUT"

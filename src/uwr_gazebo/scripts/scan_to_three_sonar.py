@@ -3,15 +3,16 @@
 import math
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 from sonar_msgs.msg import ThreeSonarDepth
 
 SONARS = {1: 'sonar_surge', 2: 'sonar_sway', 3: 'sonar_heave'}
 
-class SonarAdapter(Node):
+class ScanToThreeSonar(Node):
     def __init__(self):
-        super().__init__('sonar_adapter')
+        super().__init__('scan_to_three_sonar')
         self.latest = {i: None for i in SONARS}   # creates a dictionary that stores the latest reading from each sonar
 
         for i, name in SONARS.items():
@@ -49,8 +50,12 @@ def shortest_range(msg):
 
 def main():
     rclpy.init()
-    rclpy.spin(SonarAdapter())
-    rclpy.shutdown()
+    try:
+        rclpy.spin(ScanToThreeSonar())
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass                        # Ctrl+C / launch shutdown
+    finally:
+        rclpy.try_shutdown()
 
 if __name__ == '__main__':
     main()

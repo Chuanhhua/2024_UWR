@@ -6,10 +6,18 @@
 #   2. wait for every pane to get back to its prompt
 #   3. kill and delete the session
 # Ctrl+q inside the session runs this (zellij/config.kdl). From outside:
-#   scripts/stop_sim.sh [session-name]   (default: uwr-sim)
+#   scripts/stop_sim.sh [session-name]   (default: the one running uwr-sim-* session)
 set -uo pipefail
 
-SESSION="${1:-${ZELLIJ_SESSION_NAME:-uwr-sim}}"
+SESSION="${1:-${ZELLIJ_SESSION_NAME:-}}"
+if [[ -z "$SESSION" ]]; then
+    mapfile -t running < <(zellij list-sessions -n 2>/dev/null | grep -v EXITED | awk '$1 ~ /^uwr-sim/ {print $1}')
+    if (( ${#running[@]} != 1 )); then
+        echo "Found ${#running[@]} running uwr-sim sessions (${running[*]:-none}); name one: $0 <session>" >&2
+        exit 1
+    fi
+    SESSION="${running[0]}"
+fi
 TIMEOUT=20   # seconds to wait for launches to shut down before killing anyway
 
 if ! zellij list-sessions -n 2>/dev/null | grep -v EXITED | grep -q "^$SESSION "; then
