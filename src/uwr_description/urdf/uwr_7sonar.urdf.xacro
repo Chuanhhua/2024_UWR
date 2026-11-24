@@ -19,9 +19,13 @@
   <xacro:property name="sonar_h" value="0.15"/>   <!-- half the square: sonar offset from centre (m) -->
   <xacro:property name="sonar_z" value="-0.3"/>   <!-- sonars below base_link (m) -->
 
-  <!-- xacro arg (set by uwr_gazebo sim.launch.py from config/sim_7sonar.yaml):
-       sonar_max_range   [m] farthest echo every sonar reports (30 = Ping1D) -->
-  <xacro:arg name="sonar_max_range" default="30.0"/>
+  <!-- Required xacro args, no defaults: uwr_gazebo sim.launch.py passes them from
+       config/sim_7sonar.yaml, the only place they are set (a missing one fails
+       with "Undefined substitution argument"):
+       sonar_max_range   [m] farthest echo every sonar reports (30 = Ping1D)
+       sonar_noise_std   [m] gaussian range noise on every sonar ray
+       imu_gyro_std      [rad/s] gaussian gyro noise, each axis
+       imu_accel_std     [m/s^2] gaussian accelerometer noise, each axis -->
   <xacro:property name="sonar_max_range" value="$(arg sonar_max_range)"/>
 
   <link name="base_link">
@@ -40,36 +44,43 @@
   </link>
 
   <!-- planar sonars: name, x, y, yaw. Order matches the EKF's sonar index. -->
-  <xacro:ping1d name="sonar_front" parent="base_link" max_range="${sonar_max_range}">
+  <xacro:ping1d name="sonar_front" parent="base_link" max_range="${sonar_max_range}"
+                noise_std="$(arg sonar_noise_std)">
     <origin xyz="${sonar_h} 0 ${sonar_z}" rpy="0 0 0"/>
   </xacro:ping1d>
 
-  <xacro:ping1d name="sonar_back" parent="base_link" max_range="${sonar_max_range}">
+  <xacro:ping1d name="sonar_back" parent="base_link" max_range="${sonar_max_range}"
+                noise_std="$(arg sonar_noise_std)">
     <origin xyz="${-sonar_h} 0 ${sonar_z}" rpy="0 0 ${pi}"/>
   </xacro:ping1d>
 
-  <xacro:ping1d name="sonar_front_left" parent="base_link" max_range="${sonar_max_range}">
+  <xacro:ping1d name="sonar_front_left" parent="base_link" max_range="${sonar_max_range}"
+                noise_std="$(arg sonar_noise_std)">
     <origin xyz="${sonar_h} ${sonar_h} ${sonar_z}" rpy="0 0 ${pi/4}"/>
   </xacro:ping1d>
 
-  <xacro:ping1d name="sonar_front_right" parent="base_link" max_range="${sonar_max_range}">
+  <xacro:ping1d name="sonar_front_right" parent="base_link" max_range="${sonar_max_range}"
+                noise_std="$(arg sonar_noise_std)">
     <origin xyz="${sonar_h} ${-sonar_h} ${sonar_z}" rpy="0 0 ${-pi/4}"/>
   </xacro:ping1d>
 
-  <xacro:ping1d name="sonar_back_left" parent="base_link" max_range="${sonar_max_range}">
+  <xacro:ping1d name="sonar_back_left" parent="base_link" max_range="${sonar_max_range}"
+                noise_std="$(arg sonar_noise_std)">
     <origin xyz="${-sonar_h} ${sonar_h} ${sonar_z}" rpy="0 0 ${3*pi/4}"/>
   </xacro:ping1d>
 
-  <xacro:ping1d name="sonar_back_right" parent="base_link" max_range="${sonar_max_range}">
+  <xacro:ping1d name="sonar_back_right" parent="base_link" max_range="${sonar_max_range}"
+                noise_std="$(arg sonar_noise_std)">
     <origin xyz="${-sonar_h} ${-sonar_h} ${sonar_z}" rpy="0 0 ${-3*pi/4}"/>
   </xacro:ping1d>
 
   <!-- downward: not used by the planar EKF -->
-  <xacro:ping1d name="sonar_down" parent="base_link" max_range="${sonar_max_range}">
+  <xacro:ping1d name="sonar_down" parent="base_link" max_range="${sonar_max_range}"
+                noise_std="$(arg sonar_noise_std)">
     <origin xyz="0 0 ${sonar_z}" rpy="0 ${pi/2} 0"/>
   </xacro:ping1d>
 
-  <xacro:mti_imu parent="base_link">
+  <xacro:mti_imu parent="base_link" gyro_std="$(arg imu_gyro_std)" accel_std="$(arg imu_accel_std)">
     <origin xyz="0 0 0.035" rpy="0 0 0"/>
   </xacro:mti_imu>
 

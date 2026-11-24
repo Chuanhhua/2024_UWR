@@ -22,6 +22,31 @@ spawn:
   # heading [rad]: 0 = facing the right wall (+x), pi/2 = up the pool (+y)
   yaw: 0.7853981633974483
 
+# sensor noise added by the sim (gaussian, zero mean). The planar EKF's own
+# noise assumptions are separate: sonar_sigma, gyro_sigma, accel_sigma in
+# kalman_filter config/ekf_planar/ (keep them at or above these)
+noise:
+  # sonar range noise, std [m], on every sonar ray
+  sonar_std: 0.01
+  # IMU gyro noise, std [rad/s], each axis
+  imu_gyro_std: 0.0012
+  # IMU accelerometer noise, std [m/s^2], each axis
+  imu_accel_std: 0.006
+
+# disturbances on the robot's motion, applied by zigzag_driver (its defaults;
+# -p name:=value on the driver's command line overrides one for a run)
+motion:
+  # random sideways water velocity, std [m/s] (0 = off): turbulence, tether tugs
+  sway_noise: 0.0
+  # how slowly that sideways velocity wanders [s]
+  sway_noise_tau: 2.0
+  # steady water current across the pool, +x = away from the left wall [m/s]
+  current_x: 0.0
+  # steady water current along the pool, +y = up the pool [m/s]
+  current_y: 0.0
+  # random seed for sway_noise, so a noisy run can be repeated
+  seed: 0
+
 # ROS-Gazebo bridge (ros_gz_bridge parameter_bridge format; sim.launch.py writes
 # this list to a temporary file for it). Every topic crossing between ROS and Gazebo.
 bridge:

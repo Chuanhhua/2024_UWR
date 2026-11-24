@@ -38,6 +38,9 @@ Parameters (pool frame, metres / seconds / radians):
   legs                      number of legs to drive
   speed, accel              forward speed and acceleration along a leg
   yaw_rate, yaw_accel       turn rate and its ramp
+  config                    sim config in uwr_gazebo/config/ (default sim_7sonar); its
+                            motion: section gives the defaults of the five below, so
+                            -p only needs to override what changes for one run
   current_x, current_y      water current in the pool frame [m/s]
                             (+x away from the left wall, +y up the pool)
   sway_noise                std of the random sideways water velocity [m/s] (0 = off)
@@ -46,14 +49,19 @@ Parameters (pool frame, metres / seconds / radians):
   mass, drag, yaw_drag      robot model for the feed-forward (match uwr_7sonar.urdf.xacro)
 """
 import math
+import os
 import random
+import time
 
 import rclpy
 from rclpy.executors import ExternalShutdownException
+from rclpy.signals import SignalHandlerOptions
 from geometry_msgs.msg import Vector3
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from ros_gz_interfaces.msg import Entity, EntityWrench
+import yaml
+from ament_index_python.packages import get_package_share_directory
 
 ENTITY = Entity(name='uwr::base_link', type=Entity.LINK)
 
@@ -77,15 +85,20 @@ class ZigZag(Node):
     def __init__(self):
         super().__init__('zigzag_driver')
         p = lambda n, v: self.declare_parameter(n, v).value  # noqa: E731
+        # disturbance defaults from the sim config's motion: section (-p still overrides)
+        config = p('config', 'sim_7sonar')
+        with open(os.path.join(get_package_share_directory('uwr_gazebo'), 'config', config + '.yaml')) as f:
+            motion = yaml.safe_load(f).get('motion') or {}
+        m = lambda n, v: p(n, type(v)(motion.get(n, v)))  # noqa: E731
         self.x_in, self.x_out = p('x_in', 1.0), p('x_out', 2.5)
         self.n_legs = p('legs', 6)
         self.speed, self.accel = p('speed', 0.4), p('accel', 0.2)
         self.rate, self.yaw_accel = p('yaw_rate', math.radians(15)), p('yaw_accel', math.radians(30))
-        self.current0 = (p('current_x', 0.0), p('current_y', 0.0))
+        self.current0 = (m('current_x', 0.0), m('current_y', 0.0))
         self.current = self.current0          # current + sway noise, pool frame
-        self.sway_std, self.sway_tau = p('sway_noise', 0.0), p('sway_noise_tau', 2.0)
+        self.sway_std, self.sway_tau = m('sway_noise', 0.0), m('sway_noise_tau', 2.0)
         self.sway = 0.0                       # sideways noise velocity, body frame (+ = left)
-        self.rng = random.Random(p('seed', 0))
+        self.rng = random.Random(m('seed', 0))
         self.mass, self.drag, self.yaw_drag = p('mass', 2.9), p('drag', 10.0), p('yaw_drag', 1.0)
         self.kv, self.kw = 20.0, 2.0      # velocity / yaw-rate feedback gains
         self.verbose = p('verbose', False)  # log setpoints, measured velocity and force at 1 Hz
@@ -180,7 +193,9 @@ class ZigZag(Node):
         self.update_water(dt, psi)
 
         if self.phase == 'wait':
-            self.get_logger().info(f'start at pool ({x:.2f}, {y:.2f}), heading {math.degrees(psi):.0f} deg')
+            self.get_logger().info(
+                f'start at pool ({x:.2f}, {y:.2f}), heading {math.degrees(psi):.0f} deg; '
+                f'current ({self.current0[0]}, {self.current0[1]}) m/s, sway noise {self.sway_std} m/s')
             self.heading = math.radians(45) if math.cos(psi) > 0 else math.radians(135)
             self.phase = 'leg'
 
@@ -216,17 +231,20 @@ class ZigZag(Node):
 
 
 def main():
-    rclpy.init()
+    # Handle Ctrl+C ourselves: rclpy's own handler shuts ROS down first, and then
+    # the forces can no longer be cleared, leaving the robot pushed.
+    rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
     node = ZigZag()
     try:
         while rclpy.ok() and node.phase != 'done':
             rclpy.spin_once(node)
-        if rclpy.ok():
-            for _ in range(5):       # remove the force so the robot drifts to a stop
-                node.clear.publish(ENTITY)
     except (KeyboardInterrupt, ExternalShutdownException):
-        pass
+        node.get_logger().info('stopped early')
     finally:
+        if rclpy.ok():
+            for _ in range(5):       # remove all forces so the robot drifts to a stop
+                node.clear.publish(ENTITY)
+            time.sleep(0.2)          # let the clears go out before shutting down
         node.destroy_node()
         rclpy.try_shutdown()
 

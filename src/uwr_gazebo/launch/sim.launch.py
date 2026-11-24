@@ -1,6 +1,6 @@
 """Gazebo pool (15 x 25 m) with a UWR robot. Which robot, its sonar range and
-converter, where it spawns and the ROS-Gazebo bridge topics come from a config
-in uwr_gazebo/config/, picked by name (without .yaml):
+converter, sensor noise, where it spawns and the ROS-Gazebo bridge topics come
+from a config in uwr_gazebo/config/, picked by name (without .yaml):
 
   ros2 launch uwr_gazebo sim.launch.py config:=sim_7sonar   # 7-sonar robot, zig-zag start
   ros2 launch uwr_gazebo sim.launch.py config:=sim_3sonar   # 3-sonar robot, pool centre
@@ -36,7 +36,10 @@ def make_sim(context):
         cfg = yaml.safe_load(f)
 
     xacro_file = os.path.join(get_package_share_directory('uwr_description'), 'urdf', cfg['robot'])
-    xacro_cmd = f"xacro {xacro_file} sonar_max_range:={cfg['sonar_max_range']}"
+    noise = cfg['noise']
+    xacro_cmd = (f"xacro {xacro_file} sonar_max_range:={cfg['sonar_max_range']}"
+                 f" sonar_noise_std:={noise['sonar_std']}"
+                 f" imu_gyro_std:={noise['imu_gyro_std']} imu_accel_std:={noise['imu_accel_std']}")
     robot_description = ParameterValue(Command(xacro_cmd), value_type=str)
 
     spawn = cfg['spawn']

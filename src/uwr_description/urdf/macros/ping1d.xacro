@@ -3,7 +3,8 @@
 
   <xacro:macro name="ping1d" params="name parent *origin
                                     topic:=''
-                                    half_angle:=0.1745 max_range:=30.0 rate:=20">
+                                    half_angle:=0.1745 max_range:=30.0 rate:=20
+                                    noise_std:=0.01">
 
     <joint name="${name}_joint" type="fixed">
       <parent link="${parent}"/>
@@ -48,7 +49,7 @@
           <noise>
             <type>gaussian</type>
             <mean>0</mean>
-            <stddev>0.01</stddev>
+            <stddev>${noise_std}</stddev>
           </noise>
         </lidar>
       </sensor>

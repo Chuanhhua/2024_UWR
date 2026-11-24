@@ -12,7 +12,10 @@ def generate_launch_description():
         [FindPackageShare('uwr_description'), 'rviz', 'uwr.rviz'])
 
     # run xacro at launch time and pass the resulting URDF text as a parameter
-    robot_description = ParameterValue(Command(['xacro ', xacro_file]), value_type=str)
+    # The model needs its sensor args, which the sim takes from uwr_gazebo's config.
+    # RViz only draws the robot, so any values do here.
+    viewer_args = ' sonar_max_range:=30.0 sonar_noise_std:=0.0 imu_gyro_std:=0.0 imu_accel_std:=0.0'
+    robot_description = ParameterValue(Command(['xacro ', xacro_file, viewer_args]), value_type=str)
 
     return LaunchDescription([
         Node(package='robot_state_publisher', executable='robot_state_publisher',

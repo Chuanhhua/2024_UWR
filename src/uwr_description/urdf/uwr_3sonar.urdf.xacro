@@ -5,9 +5,13 @@
   <material name="blue"><color rgba="0.2 0.4 0.9 1"/></material>
   <xacro:include filename="macros/inertia.xacro"/>
   <xacro:include filename="macros/ping1d.xacro"/>
-  <!-- xacro arg (set by uwr_gazebo sim.launch.py from config/sim_3sonar.yaml):
-       sonar_max_range   [m] farthest echo every sonar reports (30 = Ping1D) -->
-  <xacro:arg name="sonar_max_range" default="30.0"/>
+  <!-- Required xacro args, no defaults: uwr_gazebo sim.launch.py passes them from
+       config/sim_3sonar.yaml, the only place they are set (a missing one fails
+       with "Undefined substitution argument"):
+       sonar_max_range   [m] farthest echo every sonar reports (30 = Ping1D)
+       sonar_noise_std   [m] gaussian range noise on every sonar ray
+       imu_gyro_std      [rad/s] gaussian gyro noise, each axis
+       imu_accel_std     [m/s^2] gaussian accelerometer noise, each axis -->
   <xacro:property name="sonar_max_range" value="$(arg sonar_max_range)"/>
   <xacro:include filename="macros/mti_imu.xacro"/>
   <xacro:property name="L" value="0.3"/>    <!-- length along x (m) -->
@@ -30,19 +34,22 @@
    <xacro:box_inertia m="${mass}" x="${L}" y="${W}" z="${H}"/>
   </link>
 
-  <xacro:ping1d name="sonar_surge" parent="base_link" max_range="${sonar_max_range}">
+  <xacro:ping1d name="sonar_surge" parent="base_link" max_range="${sonar_max_range}"
+                noise_std="$(arg sonar_noise_std)">
     <origin xyz="0 0 -1" rpy="0 0 0"/>
   </xacro:ping1d>
 
-  <xacro:ping1d name="sonar_sway" parent="base_link" max_range="${sonar_max_range}">
+  <xacro:ping1d name="sonar_sway" parent="base_link" max_range="${sonar_max_range}"
+                noise_std="$(arg sonar_noise_std)">
     <origin xyz="0 0 -1" rpy="0 0 ${pi/2}"/>
   </xacro:ping1d>
 
-  <xacro:ping1d name="sonar_heave" parent="base_link" max_range="${sonar_max_range}">
+  <xacro:ping1d name="sonar_heave" parent="base_link" max_range="${sonar_max_range}"
+                noise_std="$(arg sonar_noise_std)">
     <origin xyz="0 0 -1" rpy="0 ${pi/2} 0"/>
   </xacro:ping1d>
 
-  <xacro:mti_imu parent="base_link">
+  <xacro:mti_imu parent="base_link" gyro_std="$(arg imu_gyro_std)" accel_std="$(arg imu_accel_std)">
     <origin xyz="0 0 0.035" rpy="0 0 0"/>
   </xacro:mti_imu>
 
