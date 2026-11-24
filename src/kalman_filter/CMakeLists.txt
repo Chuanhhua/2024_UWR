@@ -47,7 +47,7 @@ endif()
 
 # Planar EKF for the zig-zag-with-yaw experiment. Plain C++/Eigen, no ROS,
 # so it can be unit tested on its own.
-add_library(ekf_planar STATIC src/ekf_planar.cpp)
+add_library(ekf_planar STATIC src/ekf_planar/ekf_planar.cpp)
 target_include_directories(ekf_planar PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
@@ -56,7 +56,7 @@ target_compile_features(ekf_planar PUBLIC cxx_std_17)
 set_target_properties(ekf_planar PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # ROS node running the planar EKF on /imu/data and /sbs
-add_executable(ekf_planar_node src/ekf_planar_node.cpp)
+add_executable(ekf_planar_node src/ekf_planar/ekf_planar_node.cpp)
 target_link_libraries(ekf_planar_node ekf_planar)
 ament_target_dependencies(ekf_planar_node rclcpp sensor_msgs sonar_msgs nav_msgs std_msgs
   geometry_msgs tf2 tf2_ros)
@@ -95,10 +95,15 @@ target_include_directories(imu_topic PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-
-
 	
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME}/)
+install(DIRECTORY config DESTINATION share/${PROJECT_NAME}/)
+# kf_3dof wall distances -> pool pose, for the 3-sonar sim (kf_3dof_sim_3sonar.launch.py)
+install(PROGRAMS scripts/kf_to_pool.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME kf_to_pool
+)
+
 # Set required C and C++ standards
 target_compile_features(kf PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 target_compile_features(kf_v4 PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17

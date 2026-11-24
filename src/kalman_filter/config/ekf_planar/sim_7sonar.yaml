@@ -1,0 +1,35 @@
+# Planar EKF on the 7-sonar Gazebo sim (uwr_gazebo sim.launch.py config:=sim_7sonar).
+#   ros2 launch kalman_filter ekf_planar_sim.launch.py config:=sim_7sonar
+# The start pose (init_x / init_y / init_psi) and max_range are not here: the
+# launch file takes them from uwr_gazebo config/sim_7sonar.yaml (spawn, sonar_max_range).
+# Pool: the node's default 15 x 25 m pool; its frame is the Gazebo world frame.
+# Layout matches uwr_7sonar.urdf.xacro and the unit tests: 0.15 m from the
+# centre, front / back and four corners at +-45 / +-135 deg. sonar_down is not
+# planar and is left out. Lists are in EKF sonar order:
+#   front, back, front_left, front_right, back_left, back_right
+/**:
+  ros__parameters:
+    # IMU input (sensor_msgs/Imu): gyro z drives the heading, accelerometer drives the velocity
+    imu_topic: /imu/data
+
+    # one sensor_msgs/Range topic per sonar (published by scan_to_range)
+    range_topics: [/sonar/sonar_front/range, /sonar/sonar_back/range,
+                   /sonar/sonar_front_left/range, /sonar/sonar_front_right/range,
+                   /sonar/sonar_back_left/range, /sonar/sonar_back_right/range]
+    # sonar mount position along the body x axis (forward) [m]
+    sonar_ox:    [0.15, -0.15, 0.15, 0.15, -0.15, -0.15]
+    # sonar mount position along the body y axis (left) [m]
+    sonar_oy:    [0.0, 0.0, 0.15, -0.15, 0.15, -0.15]
+    # beam direction in the body frame [rad]: 0 = forward, counter-clockwise positive
+    sonar_alpha: [0.0, 3.141592653589793, 0.7853981633974483, -0.7853981633974483,
+                  2.356194490169063, -2.356194490169063]
+
+    # z of the published pose [m]: this EKF does not estimate depth
+    output_z: 0.0
+
+    # half the sonar beam cone width [rad] (0.1745 = 10 deg, as in ping1d.xacro)
+    beam_half_angle: 0.1745
+    # shortest range the sonar can measure [m]; closer predictions are skipped
+    min_range: 0.3
+    # sonar range noise, standard deviation [m] (the sim adds 1 cm)
+    sonar_sigma: 0.01

@@ -15,20 +15,21 @@ install(DIRECTORY launch worlds config
   DESTINATION share/${PROJECT_NAME}
 )
 
-install(PROGRAMS scripts/sonar_adapter.py
+install(PROGRAMS scripts/scan_to_three_sonar.py
   DESTINATION lib/${PROJECT_NAME}
-  RENAME sonar_adapter
+  RENAME scan_to_three_sonar
 )
 
-install(PROGRAMS scripts/range_adapter.py
+install(PROGRAMS scripts/scan_to_range.py
   DESTINATION lib/${PROJECT_NAME}
-  RENAME range_adapter
+  RENAME scan_to_range
 )
 
-install(PROGRAMS scripts/kf_to_pool.py
+install(PROGRAMS scripts/zigzag_driver.py
   DESTINATION lib/${PROJECT_NAME}
-  RENAME kf_to_pool
+  RENAME zigzag_driver
 )
+
 
 
 if(BUILD_TESTING)

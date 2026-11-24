@@ -15,9 +15,10 @@ from tf2_ros import TransformBroadcaster
 class KfToPool(Node):
     def __init__(self):
         super().__init__('kf_to_pool')
-        # tank geometry: where the surfaces the sonars point at are, in the world frame
-        self.front_wall_y = self.declare_parameter('front_wall_y', 5.0).value
-        self.left_wall_x = self.declare_parameter('left_wall_x', -2.5).value
+        # pool geometry (15 x 25 m, world origin at the left / bottom wall corner):
+        # where the surfaces the sonars point at are, in the world frame
+        self.front_wall_y = self.declare_parameter('front_wall_y', 25.0).value
+        self.left_wall_x = self.declare_parameter('left_wall_x', 0.0).value
         self.floor_z = self.declare_parameter('floor_z', -2.0).value
         self.sonar_drop = self.declare_parameter('sonar_drop', 1.0).value   # sonars below base_link
         yaw = self.declare_parameter('yaw', math.pi / 2).value

@@ -3,7 +3,7 @@
 <package format="3">
   <name>uwr_gazebo</name>
   <version>0.0.0</version>
-  <description>Gazebo Harmonic simulation of the UWR platform in a test tank: world, ROS-Gazebo bridge, and a sonar adapter publishing ThreeSonarDepth on /sbs for the Kalman filter.</description>
+  <description>Gazebo Harmonic simulation of the UWR platform in the 15 x 25 m pool: world, ROS-Gazebo bridge, sonar scan converters (scan_to_three_sonar, scan_to_range) for the Kalman filters, and the zig-zag driver.</description>
   <maintainer email="liuchuany6@gmail.com">chuanhua</maintainer>
   <license>MIT</license>
 
@@ -16,13 +16,16 @@
   <exec_depend>xacro</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
-  <!-- used by sonar_adapter.py -->
+  <exec_depend>ament_index_python</exec_depend>      <!-- sim.launch.py -->
+  <exec_depend>python3-yaml</exec_depend>            <!-- sim.launch.py reads config/sim_*.yaml -->
+  <!-- used by scan_to_three_sonar.py -->
   <exec_depend>rclpy</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>            <!-- LaserScan in -->
   <exec_depend>sonar_msgs</exec_depend>             <!-- ThreeSonarDepth out -->
-  <exec_depend>kalman_filter</exec_depend>          
   <exec_depend>tf2_ros</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>               <!-- zigzag_driver: ground truth in -->
+  <exec_depend>ros_gz_interfaces</exec_depend>      <!-- zigzag_driver: EntityWrench out -->
   <exec_depend>foxglove_bridge</exec_depend>
   
   <test_depend>ament_lint_auto</test_depend>

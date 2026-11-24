@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- Same robot as uwr.urdf.xacro, with the real sonar layout used by the
+<!-- Same robot as uwr_3sonar.urdf.xacro, with the real sonar layout used by the
      planar EKF (see kalman_filter/test/test_ekf_planar.cpp):
        six planar sonars 0.30 m below base_link: front, back, and one at each
        corner of the 0.30 m square pointing outwards at +-45 / +-135 deg,
@@ -19,6 +19,11 @@
   <xacro:property name="sonar_h" value="0.15"/>   <!-- half the square: sonar offset from centre (m) -->
   <xacro:property name="sonar_z" value="-0.3"/>   <!-- sonars below base_link (m) -->
 
+  <!-- xacro arg (set by uwr_gazebo sim.launch.py from config/sim_7sonar.yaml):
+       sonar_max_range   [m] farthest echo every sonar reports (30 = Ping1D) -->
+  <xacro:arg name="sonar_max_range" default="30.0"/>
+  <xacro:property name="sonar_max_range" value="$(arg sonar_max_range)"/>
+
   <link name="base_link">
     <visual>
       <geometry>
@@ -35,32 +40,32 @@
   </link>
 
   <!-- planar sonars: name, x, y, yaw. Order matches the EKF's sonar index. -->
-  <xacro:ping1d name="sonar_front" parent="base_link">
+  <xacro:ping1d name="sonar_front" parent="base_link" max_range="${sonar_max_range}">
     <origin xyz="${sonar_h} 0 ${sonar_z}" rpy="0 0 0"/>
   </xacro:ping1d>
 
-  <xacro:ping1d name="sonar_back" parent="base_link">
+  <xacro:ping1d name="sonar_back" parent="base_link" max_range="${sonar_max_range}">
     <origin xyz="${-sonar_h} 0 ${sonar_z}" rpy="0 0 ${pi}"/>
   </xacro:ping1d>
 
-  <xacro:ping1d name="sonar_front_left" parent="base_link">
+  <xacro:ping1d name="sonar_front_left" parent="base_link" max_range="${sonar_max_range}">
     <origin xyz="${sonar_h} ${sonar_h} ${sonar_z}" rpy="0 0 ${pi/4}"/>
   </xacro:ping1d>
 
-  <xacro:ping1d name="sonar_front_right" parent="base_link">
+  <xacro:ping1d name="sonar_front_right" parent="base_link" max_range="${sonar_max_range}">
     <origin xyz="${sonar_h} ${-sonar_h} ${sonar_z}" rpy="0 0 ${-pi/4}"/>
   </xacro:ping1d>
 
-  <xacro:ping1d name="sonar_back_left" parent="base_link">
+  <xacro:ping1d name="sonar_back_left" parent="base_link" max_range="${sonar_max_range}">
     <origin xyz="${-sonar_h} ${sonar_h} ${sonar_z}" rpy="0 0 ${3*pi/4}"/>
   </xacro:ping1d>
 
-  <xacro:ping1d name="sonar_back_right" parent="base_link">
+  <xacro:ping1d name="sonar_back_right" parent="base_link" max_range="${sonar_max_range}">
     <origin xyz="${-sonar_h} ${-sonar_h} ${sonar_z}" rpy="0 0 ${-3*pi/4}"/>
   </xacro:ping1d>
 
   <!-- downward: not used by the planar EKF -->
-  <xacro:ping1d name="sonar_down" parent="base_link">
+  <xacro:ping1d name="sonar_down" parent="base_link" max_range="${sonar_max_range}">
     <origin xyz="0 0 ${sonar_z}" rpy="0 ${pi/2} 0"/>
   </xacro:ping1d>
 

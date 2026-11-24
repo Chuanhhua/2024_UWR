@@ -7,7 +7,7 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     xacro_file = PathJoinSubstitution(
-        [FindPackageShare('uwr_description'), 'urdf', 'uwr.urdf.xacro'])
+        [FindPackageShare('uwr_description'), 'urdf', 'uwr_3sonar.urdf.xacro'])
     rviz_config = PathJoinSubstitution(
         [FindPackageShare('uwr_description'), 'rviz', 'uwr.rviz'])
 

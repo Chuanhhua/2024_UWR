@@ -38,7 +38,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
 
-#include "ekf_planar.h"
+#include "ekf_planar/ekf_planar.h"
 
 namespace
 {
@@ -63,7 +63,7 @@ public:
     {
         // ----- initial state (pool frame) -----
         EkfPlanar::State x0;
-        x0 << declare_parameter("init_x", 2.5), declare_parameter("init_y", 5.0),
+        x0 << declare_parameter("init_x", 7.5), declare_parameter("init_y", 12.5),
             declare_parameter("init_psi", M_PI / 2), 0.0, 0.0, 0.0;
         const double sp = declare_parameter("init_pos_sigma", 0.1);
         const double sh = declare_parameter("init_psi_sigma", 0.05);
@@ -76,8 +76,9 @@ public:
         // ----- output -----
         frame_id_ = declare_parameter("frame_id", std::string("world"));
         child_frame_id_ = declare_parameter("child_frame_id", std::string("base_link_ekf"));
-        origin_x_ = declare_parameter("pool_origin_x", -2.5);
-        origin_y_ = declare_parameter("pool_origin_y", -5.0);
+        // pool frame -> frame_id offset; 0 = frame_id is the pool frame (the Gazebo world)
+        origin_x_ = declare_parameter("pool_origin_x", 0.0);
+        origin_y_ = declare_parameter("pool_origin_y", 0.0);
         out_z_ = declare_parameter("output_z", 0.0);
         publish_tf_ = declare_parameter("publish_tf", true);
 
@@ -143,9 +144,10 @@ private:
             sonar_fields_.push_back(static_cast<int>(f));
         }
 
-        // Rectangular pool: width along x, length along y
-        const double W = declare_parameter("pool_width", 5.0);
-        const double L = declare_parameter("pool_length", 10.0);
+        // Rectangular pool: width along x, length along y. Defaults are the real
+        // (and simulated) 15 x 25 m pool; only override for a different pool.
+        const double W = declare_parameter("pool_width", 15.0);
+        const double L = declare_parameter("pool_length", 25.0);
         p.walls = {{1, 0, 0}, {-1, 0, -W}, {0, 1, 0}, {0, -1, -L}};
 
         p.beam_half_angle = declare_parameter("beam_half_angle", p.beam_half_angle);

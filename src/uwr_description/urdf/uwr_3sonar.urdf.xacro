@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<robot name="uwr" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <material name="orange"><color rgba="1.0 0.5 0.1 1"/></material>
+  <material name="black"><color rgba="0.1 0.1 0.1 1"/></material>
+  <material name="blue"><color rgba="0.2 0.4 0.9 1"/></material>
+  <xacro:include filename="macros/inertia.xacro"/>
+  <xacro:include filename="macros/ping1d.xacro"/>
+  <!-- xacro arg (set by uwr_gazebo sim.launch.py from config/sim_3sonar.yaml):
+       sonar_max_range   [m] farthest echo every sonar reports (30 = Ping1D) -->
+  <xacro:arg name="sonar_max_range" default="30.0"/>
+  <xacro:property name="sonar_max_range" value="$(arg sonar_max_range)"/>
+  <xacro:include filename="macros/mti_imu.xacro"/>
+  <xacro:property name="L" value="0.3"/>    <!-- length along x (m) -->
+  <xacro:property name="W" value="0.3"/>    <!-- width along y (m) -->
+  <xacro:property name="H" value="0.05"/>    <!-- height along z (m) -->
+  <xacro:property name="mass" value="${0.5 * 1000 * L * W * H - 0.5}"/> 
+
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="${L} ${W} ${H}"/>
+      </geometry>
+      <material name="orange"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="${L} ${W} ${H}"/>
+      </geometry>
+    </collision>
+   <xacro:box_inertia m="${mass}" x="${L}" y="${W}" z="${H}"/>
+  </link>
+
+  <xacro:ping1d name="sonar_surge" parent="base_link" max_range="${sonar_max_range}">
+    <origin xyz="0 0 -1" rpy="0 0 0"/>
+  </xacro:ping1d>
+
+  <xacro:ping1d name="sonar_sway" parent="base_link" max_range="${sonar_max_range}">
+    <origin xyz="0 0 -1" rpy="0 0 ${pi/2}"/>
+  </xacro:ping1d>
+
+  <xacro:ping1d name="sonar_heave" parent="base_link" max_range="${sonar_max_range}">
+    <origin xyz="0 0 -1" rpy="0 ${pi/2} 0"/>
+  </xacro:ping1d>
+
+  <xacro:mti_imu parent="base_link">
+    <origin xyz="0 0 0.035" rpy="0 0 0"/>
+  </xacro:mti_imu>
+
+  <!-- water drag: force = coefficient x velocity. Only the linear terms are used:
+      xU/yV/zW for movement (N per m/s), kP/mQ/nR for rotation. 0 = off. -->
+  <gazebo>
+    <plugin filename="gz-sim-hydrodynamics-system" name="gz::sim::systems::Hydrodynamics">
+      <link_name>base_link</link_name>
+      <xDotU>0</xDotU><yDotV>0</yDotV><zDotW>0</zDotW>
+      <kDotP>0</kDotP><mDotQ>0</mDotQ><nDotR>0</nDotR>
+      <xUabsU>0</xUabsU><yVabsV>0</yVabsV><zWabsW>0</zWabsW>
+      <kPabsP>0</kPabsP><mQabsQ>0</mQabsQ><nRabsR>0</nRabsR>
+      <xU>-10</xU><yV>-10</yV><zW>-10</zW>
+      <kP>-1</kP><mQ>-1</mQ><nR>-1</nR>
+    </plugin>
+  </gazebo>
+
+  <!-- ground truth: the robot's true pose and velocity, for evaluating the KF -->
+  <gazebo>
+    <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
+      <dimensions>3</dimensions>
+      <odom_frame>world</odom_frame>
+      <robot_base_frame>base_link</robot_base_frame>
+      <odom_publish_frequency>50</odom_publish_frequency>
+      <odom_topic>/model/uwr/odometry</odom_topic>
+      <tf_topic>/model/uwr/pose</tf_topic>
+    </plugin>
+  </gazebo>
+
+</robot>
