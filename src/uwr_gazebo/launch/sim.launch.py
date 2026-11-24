@@ -5,6 +5,9 @@ from a config in uwr_gazebo/config/, picked by name (without .yaml):
   ros2 launch uwr_gazebo sim.launch.py config:=sim_7sonar   # 7-sonar robot, zig-zag start
   ros2 launch uwr_gazebo sim.launch.py config:=sim_3sonar   # 3-sonar robot, pool centre
 
+  gui:=false   run Gazebo without its window (the sonars still work), for
+               batch runs or a slow machine; Foxglove still shows everything
+
 Default: sim_7sonar. Start the matching filter with the same name; it reads
 its start pose and sonar range from the same config:
   ros2 launch kalman_filter ekf_planar_sim.launch.py config:=sim_7sonar
@@ -44,11 +47,13 @@ def make_sim(context):
 
     spawn = cfg['spawn']
 
-    # Gazebo itself, via ros_gz_sim's ready-made launch file
+    # Gazebo itself, via ros_gz_sim's ready-made launch file; -s = server only (no window)
+    gui = LaunchConfiguration('gui').perform(context).lower() in ('true', '1')
+    gz_flags = '-r ' if gui else '-r -s '
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py')),
-        launch_arguments={'gz_args': '-r ' + os.path.join(gazebo_share, 'worlds', 'pool.sdf')}.items())
+        launch_arguments={'gz_args': gz_flags + os.path.join(gazebo_share, 'worlds', 'pool.sdf')}.items())
 
     # publishes the URDF on /robot_description (and TF)
     rsp = Node(package='robot_state_publisher', executable='robot_state_publisher',
@@ -84,6 +89,8 @@ def make_sim(context):
 
 def generate_launch_description():
     return LaunchDescription([
+        DeclareLaunchArgument('gui', default_value='true',
+                              description='false: run Gazebo without its window (much less CPU)'),
         DeclareLaunchArgument('config', default_value='sim_7sonar',
                               description='sim config name in uwr_gazebo/config/ '
                                           '(without .yaml), e.g. sim_7sonar or sim_3sonar'),

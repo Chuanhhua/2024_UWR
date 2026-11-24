@@ -37,13 +37,13 @@ noise:
 # -p name:=value on the driver's command line overrides one for a run)
 motion:
   # random sideways water velocity, std [m/s] (0 = off): turbulence, tether tugs
-  sway_noise: 0.0
+  sway_noise: 0.05
   # how slowly that sideways velocity wanders [s]
   sway_noise_tau: 2.0
   # steady water current across the pool, +x = away from the left wall [m/s]
-  current_x: 0.0
+  current_x: 0.05
   # steady water current along the pool, +y = up the pool [m/s]
-  current_y: 0.0
+  current_y: 0.05
   # random seed for sway_noise, so a noisy run can be repeated
   seed: 0
 

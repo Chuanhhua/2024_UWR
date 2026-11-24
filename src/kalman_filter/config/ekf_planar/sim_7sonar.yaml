@@ -33,3 +33,7 @@
     min_range: 0.3
     # sonar range noise, standard deviation [m] (the sim adds 1 cm)
     sonar_sigma: 0.01
+    # sideways body velocity the robot can have, std [m/s] (the no-sideslip
+    # assumption); at least the sim's sway_noise / current in uwr_gazebo
+    # config/sim_7sonar.yaml, or the EKF over-trusts it and loses its heading
+    sideslip_sigma: 0.08
