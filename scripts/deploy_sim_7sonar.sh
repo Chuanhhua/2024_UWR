@@ -6,6 +6,8 @@
 #   debug 1  the 6-leg zig-zag driver; add disturbances to its --ros-args, e.g.
 #            -p sway_noise:=0.01 (random sideways slip, m/s)
 #            -p current_y:=0.02  (current up the pool, m/s)
+#   debug 2  pixi run reset-run: robot back to its spawn pose and EKF reset, for a
+#            new run without restarting anything (then rerun the driver)
 # Start sim, then kf, then the driver.
 # Run from a normal terminal (not pixi):
 #   scripts/deploy_sim_7sonar.sh [session-name]   (default: uwr-sim-7sonar)
@@ -15,5 +17,6 @@ declare -A PREFILL=(
     [sim]="ros2 launch uwr_gazebo sim.launch.py config:=sim_7sonar"
     [kf]="ros2 launch kalman_filter ekf_planar_sim.launch.py config:=sim_7sonar"
     ["debug 1"]="ros2 run uwr_gazebo zigzag_driver --ros-args -p use_sim_time:=true"
+    ["debug 2"]="pixi run reset-run"
 )
 source "$(dirname "${BASH_SOURCE[0]}")/sim_session.sh"

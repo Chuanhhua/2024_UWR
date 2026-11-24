@@ -12,6 +12,9 @@
 //                 (predicted, innovation and S are from before the update)
 //   TF frame_id -> child_frame_id              (if publish_tf)
 //
+// Services
+//   ~/reset       (std_srvs/Trigger)           back to the start pose (init_*), as at launch
+//
 // Frames
 //   The EKF works in the pool frame (origin at the left wall / near end corner,
 //   +x across the width, +y down the length). Outputs are shifted by
@@ -34,6 +37,7 @@
 #include <sensor_msgs/msg/range.hpp>
 #include <sonar_msgs/msg/three_sonar_depth.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
+#include <std_srvs/srv/trigger.hpp>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -72,6 +76,8 @@ public:
         EkfPlanar::Cov P0 = EkfPlanar::Cov::Zero();
         P0.diagonal() << sp * sp, sp * sp, sh * sh, sv * sv, sv * sv, sb * sb;
         ekf_.init(x0, P0);
+        x0_ = x0;  // kept for ~/reset
+        P0_ = P0;
 
         // ----- output -----
         frame_id_ = declare_parameter("frame_id", std::string("world"));
@@ -111,6 +117,22 @@ public:
             sonar_sub_ = create_subscription<sonar_msgs::msg::ThreeSonarDepth>(
                 sonar_topic, 10, [this](const sonar_msgs::msg::ThreeSonarDepth& m) { on_sonar(m); });
         }
+
+        // ~/reset (std_srvs/Trigger): back to the start pose and uncertainty, as at
+        // launch, e.g. to start a new run without restarting the node
+        reset_srv_ = create_service<std_srvs::srv::Trigger>(
+            "~/reset", [this](const std::shared_ptr<std_srvs::srv::Trigger::Request>,
+                              std::shared_ptr<std_srvs::srv::Trigger::Response> res) {
+                ekf_.init(x0_, P0_);
+                have_imu_ = false;  // the next IMU sample starts the prediction afresh
+                counts_.fill(0);
+                low_confidence_ = 0;
+                no_echo_ = 0;
+                res->success = true;
+                res->message = "EKF reset to its start pose";
+                RCLCPP_INFO(get_logger(), "reset to pool (%.2f, %.2f), heading %.1f deg",
+                            x0_(EkfPlanar::PX), x0_(EkfPlanar::PY), x0_(EkfPlanar::PSI) * 180 / M_PI);
+            });
 
         // periodic health summary: how the sonar updates went
         stats_timer_ = create_wall_timer(std::chrono::seconds(5), [this] { log_stats(); });
@@ -332,6 +354,9 @@ private:
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr diag_pub_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_;
     rclcpp::TimerBase::SharedPtr stats_timer_;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_srv_;
+    EkfPlanar::State x0_;  // start state and covariance, for ~/reset
+    EkfPlanar::Cov P0_;
 };
 
 int main(int argc, char** argv)
