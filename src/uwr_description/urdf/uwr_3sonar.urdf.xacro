@@ -6,7 +6,7 @@
   <xacro:include filename="macros/inertia.xacro"/>
   <xacro:include filename="macros/ping1d.xacro"/>
   <!-- Required xacro args, no defaults: uwr_gazebo sim.launch.py passes them from
-       config/sim_3sonar.yaml, the only place they are set (a missing one fails
+       config/gazebo_3sonar.yaml, the only place they are set (a missing one fails
        with "Undefined substitution argument"):
        sonar_max_range   [m] farthest echo every sonar reports (30 = Ping1D)
        sonar_noise_std   [m] gaussian range noise on every sonar ray

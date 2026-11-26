@@ -1,0 +1,123 @@
+# Gazebo sim with the 7-sonar robot, for the zig-zag run. The planar EKF
+# (ekf_planar_sim.launch.py, with kalman_filter config/ekf_planar/ekf_sim_7sonar.yaml)
+# reads spawn and sonar_max_range from here too, so they are set once:
+#   ros2 launch uwr_gazebo sim.launch.py config:=gazebo_7sonar
+#   ros2 launch kalman_filter ekf_planar_sim.launch.py
+# Not ROS parameters: the launch files read this file to decide what to start.
+
+robot: uwr_7sonar.urdf.xacro       # robot model, in uwr_description/urdf
+sonar_max_range: 5.0               # farthest echo every sonar reports [m] (5 = generic sonar, 30 = Ping1D); also the EKF's max_range
+sonar_converter: scan_to_range     # turns the sonar LaserScans into one sensor_msgs/Range per sonar, for the filter
+
+spawn:                             # spawn pose (world = pool frame, origin at the left / bottom wall corner); also the EKF's start pose
+  x: 1.5                           # across the pool, from the left wall [m] (the zig-zag start)
+  y: 8.0                           # along the pool, from the bottom wall [m]
+  yaw: 0.7853981633974483          # heading [rad]: 0 = facing the right wall (+x), pi/2 = up the pool (+y)
+
+noise:                             # sensor noise and bad sonar readings added by the sim; keep the EKF's own sigmas at or above the stds
+  sonar_std: 0.01                  # sonar range noise, std [m], on every sonar ray
+  imu_gyro_std: 0.0012             # IMU gyro noise, std [rad/s], each axis
+  imu_accel_std: 0.006             # IMU accelerometer noise, std [m/s^2], each axis
+  sonar_dropout: 0.05              # probability a sonar reading is lost (no echo, published as +inf)
+  sonar_outlier: 0.02              # probability a sonar reading is a spurious echo (random range, min to max)
+  sonar_seed: 0                    # random seed for the dropouts and outliers, so a run can be repeated
+
+zigzag_driver:                     # the zig-zag run (zigzag_driver reads this; it has no ROS parameters of its own)
+  legs: 4                          # number of legs, alternating 45 / 135 deg with a 90 deg turn between them
+  leg_time: 8.0                    # duration of each leg, ramps included [s]; still water: speed * (leg_time - speed / accel) = 2.25 m
+  speed: 0.5                       # forward speed through the water [m/s]
+  accel: 0.2                       # forward acceleration and deceleration along a leg [m/s^2]
+  yaw_rate: 45.0                   # turn rate [deg/s]
+  yaw_accel: 60.0                  # turn rate ramp [deg/s^2]
+  wall_margin: 0.5                 # safety stop: end the run when the robot centre is this close to a wall [m]
+  pool_width: 15.0                 # pool size across, for the safety stop [m] (match the Gazebo world)
+  pool_length: 25.0                # pool size along, for the safety stop [m] (match the Gazebo world)
+  mass: 2.9                        # feed-forward robot mass [kg] (match uwr_7sonar.urdf.xacro)
+  drag: 10.0                       # feed-forward linear drag [N per m/s] (match uwr_7sonar.urdf.xacro)
+  yaw_drag: 1.0                    # feed-forward yaw drag [N m per rad/s] (match uwr_7sonar.urdf.xacro)
+  kv: 20.0                         # velocity feedback gain [N per m/s]
+  kw: 2.0                          # yaw-rate feedback gain [N m per rad/s]
+  sway_noise: 0.00                 # disturbance: random sideways water velocity, std [m/s] (0 = off), turbulence / tether tugs
+  sway_noise_tau: 2.0              # how slowly that sideways velocity wanders [s]
+  current_noise: 0.05              # disturbance: random water current, std per pool axis [m/s] (0 = off), zero mean, both ways
+  current_noise_tau: 20.0          # how slowly the current wanders [s] (much slower than the sway noise)
+  seed: 0                          # random seed for sway_noise and current_noise, so a noisy run can be repeated
+
+bridge:                            # ROS-Gazebo bridge (parameter_bridge format; sim.launch.py writes it to a temp file): every topic crossing
+  - ros_topic_name: /clock
+    gz_topic_name: /clock
+    ros_type_name: rosgraph_msgs/msg/Clock
+    gz_type_name: gz.msgs.Clock
+    direction: GZ_TO_ROS
+
+  - ros_topic_name: /imu/data
+    gz_topic_name: /imu
+    ros_type_name: sensor_msgs/msg/Imu
+    gz_type_name: gz.msgs.IMU
+    direction: GZ_TO_ROS
+
+  - ros_topic_name: /sonar/sonar_front
+    gz_topic_name: /sonar/sonar_front
+    ros_type_name: sensor_msgs/msg/LaserScan
+    gz_type_name: gz.msgs.LaserScan
+    direction: GZ_TO_ROS
+
+  - ros_topic_name: /sonar/sonar_back
+    gz_topic_name: /sonar/sonar_back
+    ros_type_name: sensor_msgs/msg/LaserScan
+    gz_type_name: gz.msgs.LaserScan
+    direction: GZ_TO_ROS
+
+  - ros_topic_name: /sonar/sonar_front_left
+    gz_topic_name: /sonar/sonar_front_left
+    ros_type_name: sensor_msgs/msg/LaserScan
+    gz_type_name: gz.msgs.LaserScan
+    direction: GZ_TO_ROS
+
+  - ros_topic_name: /sonar/sonar_front_right
+    gz_topic_name: /sonar/sonar_front_right
+    ros_type_name: sensor_msgs/msg/LaserScan
+    gz_type_name: gz.msgs.LaserScan
+    direction: GZ_TO_ROS
+
+  - ros_topic_name: /sonar/sonar_back_left
+    gz_topic_name: /sonar/sonar_back_left
+    ros_type_name: sensor_msgs/msg/LaserScan
+    gz_type_name: gz.msgs.LaserScan
+    direction: GZ_TO_ROS
+
+  - ros_topic_name: /sonar/sonar_back_right
+    gz_topic_name: /sonar/sonar_back_right
+    ros_type_name: sensor_msgs/msg/LaserScan
+    gz_type_name: gz.msgs.LaserScan
+    direction: GZ_TO_ROS
+
+  - ros_topic_name: /sonar/sonar_down
+    gz_topic_name: /sonar/sonar_down
+    ros_type_name: sensor_msgs/msg/LaserScan
+    gz_type_name: gz.msgs.LaserScan
+    direction: GZ_TO_ROS
+
+  - ros_topic_name: /world/pool/wrench/persistent   # forces on the robot (zigzag_driver); they ADD UP until cleared, so it sends only changes
+    gz_topic_name: /world/pool/wrench/persistent
+    ros_type_name: ros_gz_interfaces/msg/EntityWrench
+    gz_type_name: gz.msgs.EntityWrench
+    direction: ROS_TO_GZ
+
+  - ros_topic_name: /world/pool/wrench/clear
+    gz_topic_name: /world/pool/wrench/clear
+    ros_type_name: ros_gz_interfaces/msg/Entity
+    gz_type_name: gz.msgs.Entity
+    direction: ROS_TO_GZ
+
+  - ros_topic_name: /tf
+    gz_topic_name: /model/uwr/pose
+    ros_type_name: tf2_msgs/msg/TFMessage
+    gz_type_name: gz.msgs.Pose_V
+    direction: GZ_TO_ROS
+
+  - ros_topic_name: /pose_topic_gt
+    gz_topic_name: /model/uwr/odometry
+    ros_type_name: nav_msgs/msg/Odometry
+    gz_type_name: gz.msgs.Odometry
+    direction: GZ_TO_ROS

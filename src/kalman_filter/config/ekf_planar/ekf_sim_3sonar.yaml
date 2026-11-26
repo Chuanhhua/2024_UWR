@@ -1,0 +1,22 @@
+# Planar EKF on the 3-sonar Gazebo sim (uwr_gazebo sim.launch.py config:=gazebo_3sonar).
+#   not used by any launch file now (ekf_planar_sim.launch.py reads ekf_sim_7sonar.yaml)
+# The start pose (init_x / init_y / init_psi) and max_range are not here: the
+# launch file takes them from uwr_gazebo config/gazebo_3sonar.yaml (spawn, sonar_max_range).
+# Pool: the node's default 15 x 25 m pool; its frame is the Gazebo world frame.
+# The EKF uses surge (forward) and sway (left), both at the body centre; heave
+# points down and is not planar. Lists are in EKF sonar order: surge, sway.
+/**:
+  ros__parameters:
+    imu_topic: /imu/data             # IMU input (sensor_msgs/Imu): gyro z drives the heading, accelerometer the velocity
+
+    sonar_topic: /sbs                # sonar input: one ThreeSonarDepth with all three sonars (from scan_to_three_sonar)
+    sonar_fields: [1, 2]             # which ThreeSonarDepth field each sonar reads: 1 = surge, 2 = sway, 3 = heave
+    sonar_ox: [0.0, 0.0]             # sonar mount position along the body x axis (forward) [m]
+    sonar_oy: [0.0, 0.0]             # sonar mount position along the body y axis (left) [m]
+    sonar_alpha: [0.0, 1.5707963267948966]   # beam direction in the body frame [rad]: 0 = forward, CCW positive
+
+    output_z: 0.0                    # z of the published pose [m]: this EKF does not estimate depth
+
+    beam_half_angle: 0.1745          # half the sonar beam cone width [rad] (0.1745 = 10 deg, as in ping1d.xacro)
+    min_range: 0.3                   # shortest range the sonar can measure [m]; closer predictions are skipped
+    sonar_sigma: 0.02                # sonar range noise, std [m] (the sim adds 1 cm; 0.02 is cautious)

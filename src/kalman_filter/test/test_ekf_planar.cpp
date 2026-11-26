@@ -264,6 +264,46 @@ TEST(EkfPlanarRecovery, OccasionalBadEchoDoesNotTriggerRecovery)
     EXPECT_NEAR(ekf.state()(EkfPlanar::PX), 1.0, 0.01);
 }
 
+// A sonar that keeps returning scattered junk (random outliers) is gated for
+// as long as it lasts: the readings disagree with each other, so the filter
+// blames the sonar and never forces one in.
+TEST(EkfPlanarRecovery, ScatteredBadReadingsNeverTriggerRecovery)
+{
+    EkfPlanar::Params p = pool_params();
+    p.walls = {{1, 0, 0}};
+    EkfPlanar ekf(p), truth_model(p);
+    const EkfPlanar::State truth = make_state(1.0, 5.0, 45 * kDeg);
+    EkfPlanar::Cov P0 = EkfPlanar::Cov::Identity() * 1e-4;
+    ekf.init(truth, P0);
+
+    double h;
+    ASSERT_EQ(truth_model.sonar_model(truth, BACK_LEFT, h), EkfPlanar::SonarResult::Used);
+    const double junk[] = {0.5, 1.2, 0.3, 0.9, 0.7, 1.1};  // offsets from the true range [m], spread 0.9 m (all within max_range)
+    for (int i = 0; i < 5 * p.gate_reset_count; ++i)
+        ASSERT_EQ(ekf.update_sonar(BACK_LEFT, h + junk[i % 6]), EkfPlanar::SonarResult::Gated) << "reading " << i;
+    EXPECT_NEAR(ekf.state()(EkfPlanar::PX), 1.0, 0.01);
+    EXPECT_EQ(ekf.update_sonar(BACK_LEFT, h), EkfPlanar::SonarResult::Used);  // a good reading still gets through
+}
+
+// With the agreement check off (gate_reset_spread 0), the same junk forces a
+// recovery after gate_reset_count rejections: the old behaviour.
+TEST(EkfPlanarRecovery, SpreadCheckOffRecoversOnAnyRun)
+{
+    EkfPlanar::Params p = pool_params();
+    p.walls = {{1, 0, 0}};
+    p.gate_reset_spread = 0.0;
+    EkfPlanar ekf(p), truth_model(p);
+    const EkfPlanar::State truth = make_state(1.0, 5.0, 45 * kDeg);
+    ekf.init(truth, EkfPlanar::Cov::Identity() * 1e-4);
+
+    double h;
+    ASSERT_EQ(truth_model.sonar_model(truth, BACK_LEFT, h), EkfPlanar::SonarResult::Used);
+    const double junk[] = {0.5, 1.2, 0.3, 0.9, 0.7, 1.1};
+    for (int i = 1; i < p.gate_reset_count; ++i)
+        ASSERT_EQ(ekf.update_sonar(BACK_LEFT, h + junk[i % 6]), EkfPlanar::SonarResult::Gated) << "reading " << i;
+    EXPECT_EQ(ekf.update_sonar(BACK_LEFT, h + junk[0]), EkfPlanar::SonarResult::Recovered);
+}
+
 // ------------------------------------------------------------ 3. Zig-zag run
 
 struct Segment {

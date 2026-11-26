@@ -2,8 +2,8 @@
 """Start a new sim run without restarting anything: put the robot back at its
 spawn pose and reset the planar EKF to its start pose.
 
-  pixi run reset-run               # config sim_7sonar
-  pixi run reset-run sim_3sonar
+  pixi run reset-run               # config gazebo_7sonar
+  pixi run reset-run gazebo_3sonar
 
 Then start the driver again (in its pane: Up arrow, Enter). Gazebo, the
 bridge, the EKF node and Foxglove keep running; Foxglove's trails restart
@@ -37,7 +37,7 @@ def run(cmd, timeout=10):
 
 
 def main():
-    config = sys.argv[1] if len(sys.argv) > 1 else 'sim_7sonar'
+    config = sys.argv[1] if len(sys.argv) > 1 else 'gazebo_7sonar'
     with open(os.path.join(get_package_share_directory('uwr_gazebo'), 'config', config + '.yaml')) as f:
         spawn = yaml.safe_load(f)['spawn']
     x, y, yaw = float(spawn['x']), float(spawn['y']), float(spawn['yaw'])

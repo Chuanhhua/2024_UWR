@@ -1,0 +1,57 @@
+# Planar EKF on the REAL 7-sonar robot (no sim: the start pose, sonar range and
+# noise values all live here, unlike the sim configs).
+#   ros2 launch kalman_filter ekf_planar_real.launch.py   (reads this file)
+# DRAFT: every "TODO" is a placeholder to replace with the real value.
+# Lists are in EKF sonar order: front, back, front_left, front_right, back_left, back_right
+/**:
+  ros__parameters:
+    # ---- inputs ----
+    imu_topic: /imu/data             # IMU (sensor_msgs/Imu): gyro z drives the heading, accelerometer the velocity. TODO: the Xsens driver's topic
+    range_topics: [/sonar/sonar_front/range, /sonar/sonar_back/range,      # one sensor_msgs/Range topic per sonar, in EKF order. TODO: the real sonar driver's topics
+                   /sonar/sonar_front_left/range, /sonar/sonar_front_right/range,
+                   /sonar/sonar_back_left/range, /sonar/sonar_back_right/range]
+    tilt_compensate: true            # use the IMU orientation to level the accelerometer (needs orientation in the Imu msg)
+    max_imu_gap: 0.5                 # IMU gap that resets the prediction instead of integrating across it [s]
+
+    # ---- sonar layout (body frame: x forward, y left, from base_link) ---- TODO: measure on the robot; these are the design values
+    sonar_ox:    [0.15, -0.15, 0.15, 0.15, -0.15, -0.15]                   # mount position along x (forward) [m]
+    sonar_oy:    [0.0, 0.0, 0.15, -0.15, 0.15, -0.15]                      # mount position along y (left) [m]
+    sonar_alpha: [0.0, 3.141592653589793, 0.7853981633974483, -0.7853981633974483,   # beam direction [rad]: 0 = forward, CCW positive
+                  2.356194490169063, -2.356194490169063]
+
+    # ---- pool ---- TODO: measure; the pool frame's origin is the left / bottom wall corner
+    pool_width: 15.0                 # width, across the pool (x) [m]
+    pool_length: 25.0                # length, along the pool (y) [m]
+
+    # ---- sonar model ---- TODO: from the sonar datasheet
+    beam_half_angle: 0.1745          # half the beam cone width [rad] (0.1745 = 10 deg)
+    min_range: 0.3                   # shortest range the sonar can measure [m]
+    max_range: 5.0                   # longest range the sonar can measure [m]
+    max_incidence: 0.873             # most oblique beam-to-wall angle still trusted [rad] (0.873 = 50 deg)
+
+    # ---- noise the EKF assumes ---- TODO: estimate from a bag of the robot sitting still (std of each signal)
+    sonar_sigma: 0.02                # sonar range noise, std [m]
+    gyro_sigma: 0.005                # gyro noise, std [rad/s]
+    gyro_bias_walk: 0.0001           # how fast the gyro bias may wander [rad/s/sqrt(s)]
+    accel_sigma: 0.05                # accelerometer noise, std [m/s^2] (also covers small biases)
+    sideslip_sigma: 0.01             # sideways body velocity the robot can have, std [m/s] (no-sideslip assumption)
+
+    # ---- bad readings ----
+    gate_chi2: 6.63                  # reject a sonar reading whose innovation^2 / S exceeds this (6.63 = 99%)
+    gate_reset_count: 20             # after this many rejections in a row that agree with each other, trust the next reading anyway (0 = never). TODO: a steady wrong-wall echo still agrees with itself; consider 0 if that happens
+    gate_reset_spread: 0.2           # [m] most the rejected readings' innovations may spread (max - min) and still count as agreeing (0 = no check)
+
+    # ---- start pose (pool frame) ---- TODO: where the robot is placed at the start of the run
+    init_x: 1.0                      # across the pool, from the left wall [m]
+    init_y: 8.0                      # along the pool, from the bottom wall [m]
+    init_psi: 0.7853981633974483     # heading [rad]: 0 = facing the right wall (+x), pi/2 = up the pool (+y)
+    init_pos_sigma: 0.1              # how sure you are of that start position, std [m]
+    init_psi_sigma: 0.05             # how sure you are of that start heading, std [rad]
+
+    # ---- output ----
+    frame_id: world                  # frame of the published pose: the pool frame, called "world" as in the sim
+    child_frame_id: base_link        # robot frame: the EKF publishes TF world -> base_link
+    publish_tf: true                 # publish that TF (for RViz / Foxglove; no other TF on the robot)
+    pool_origin_x: 0.0               # pool frame -> frame_id offset in x [m] (0 = frame_id is the pool frame)
+    pool_origin_y: 0.0               # pool frame -> frame_id offset in y [m]
+    output_z: 0.0                    # z of the published pose [m]: this EKF does not estimate depth

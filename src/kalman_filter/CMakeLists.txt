@@ -104,6 +104,11 @@ install(PROGRAMS scripts/kf_to_pool.py
   DESTINATION lib/${PROJECT_NAME}
   RENAME kf_to_pool
 )
+# bag of a run, shared by the launch files (ekf_planar_sim / ekf_planar_real)
+install(PROGRAMS scripts/bag_recorder.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME bag_recorder
+)
 
 # Set required C and C++ standards
 target_compile_features(kf PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17

@@ -1,0 +1,64 @@
+# Gazebo sim with the 3-sonar robot (surge / sway / heave), for kf_3dof:
+#   ros2 launch uwr_gazebo sim.launch.py config:=gazebo_3sonar
+#   ros2 launch kalman_filter kf_3dof_sim_3sonar.launch.py
+# Not ROS parameters: the launch files read this file to decide what to start.
+
+robot: uwr_3sonar.urdf.xacro       # robot model, in uwr_description/urdf
+sonar_max_range: 30.0              # farthest echo every sonar reports [m] (30 = Ping1D); also the EKF's max_range
+sonar_converter: scan_to_three_sonar   # turns the three sonar LaserScans into one ThreeSonarDepth on /sbs
+
+spawn:                             # spawn pose (world = pool frame, origin at the left / bottom wall corner); also the EKF's start pose
+  x: 7.5                           # across the pool, from the left wall [m] (the pool centre)
+  y: 12.5                          # along the pool, from the bottom wall [m]
+  yaw: 1.5707963267948966          # heading [rad]: 0 = facing the right wall (+x), pi/2 = up the pool (+y)
+
+noise:                             # sensor noise and bad sonar readings added by the sim; keep the EKF's own sigmas at or above the stds
+  sonar_std: 0.01                  # sonar range noise, std [m], on every sonar ray
+  imu_gyro_std: 0.0012             # IMU gyro noise, std [rad/s], each axis
+  imu_accel_std: 0.006             # IMU accelerometer noise, std [m/s^2], each axis
+  sonar_dropout: 0.0               # probability a sonar reading is lost (no echo, published as +inf)
+  sonar_outlier: 0.0               # probability a sonar reading is a spurious echo (random range, min to max)
+  sonar_seed: 0                    # random seed for the dropouts and outliers, so a run can be repeated
+
+bridge:                            # ROS-Gazebo bridge (parameter_bridge format; sim.launch.py writes it to a temp file): every topic crossing
+  - ros_topic_name: /clock         # simulation clock: lets ROS nodes with use_sim_time follow Gazebo's time
+    gz_topic_name: /clock
+    ros_type_name: rosgraph_msgs/msg/Clock
+    gz_type_name: gz.msgs.Clock
+    direction: GZ_TO_ROS
+
+  - ros_topic_name: /imu/data      # IMU, renamed to /imu/data, which the KF subscribes to
+    gz_topic_name: /imu
+    ros_type_name: sensor_msgs/msg/Imu
+    gz_type_name: gz.msgs.IMU
+    direction: GZ_TO_ROS
+
+  - ros_topic_name: /sonar/sonar_surge
+    gz_topic_name: /sonar/sonar_surge
+    ros_type_name: sensor_msgs/msg/LaserScan
+    gz_type_name: gz.msgs.LaserScan
+    direction: GZ_TO_ROS
+
+  - ros_topic_name: /sonar/sonar_sway
+    gz_topic_name: /sonar/sonar_sway
+    ros_type_name: sensor_msgs/msg/LaserScan
+    gz_type_name: gz.msgs.LaserScan
+    direction: GZ_TO_ROS
+
+  - ros_topic_name: /sonar/sonar_heave
+    gz_topic_name: /sonar/sonar_heave
+    ros_type_name: sensor_msgs/msg/LaserScan
+    gz_type_name: gz.msgs.LaserScan
+    direction: GZ_TO_ROS
+
+  - ros_topic_name: /tf            # true pose as TF world -> base_link; the robot model in RViz / Foxglove follows it
+    gz_topic_name: /model/uwr/pose
+    ros_type_name: tf2_msgs/msg/TFMessage
+    gz_type_name: gz.msgs.Pose_V
+    direction: GZ_TO_ROS
+
+  - ros_topic_name: /pose_topic_gt # ground truth from Gazebo, for evaluating the KF (sim only)
+    gz_topic_name: /model/uwr/odometry
+    ros_type_name: nav_msgs/msg/Odometry
+    gz_type_name: gz.msgs.Odometry
+    direction: GZ_TO_ROS

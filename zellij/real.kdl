@@ -19,8 +19,8 @@ layout {
             pane name="kf" command="pixi" { args "shell"; }
         }
         pane split_direction="vertical" {
-            pane name="record" command="pixi" focus=true { args "shell"; }
-            pane name="debug" command="pixi" { args "shell"; }
+            pane name="debug 1" command="pixi" focus=true { args "shell"; }
+            pane name="debug 2" command="pixi" { args "shell"; }
         }
     }
 }

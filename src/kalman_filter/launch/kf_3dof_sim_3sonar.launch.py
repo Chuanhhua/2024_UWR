@@ -1,6 +1,6 @@
 """The old 3-DOF Kalman filter (kalman_filter kf_3dof) on the 3-sonar sim.
 
-Starts only the filter side; run the sim first (uwr_gazebo sim.launch.py config:=sim_3sonar):
+Starts only the filter side; run the sim first (uwr_gazebo sim.launch.py config:=gazebo_3sonar):
   - kf_3dof (kalman_filter launch_3dof.py) on sim time, reading /imu/data and /sbs,
     writing its CSV to csv_path
   - kf_to_pool: turns its wall distances into a pool pose on /kf/pool_pose (+ TF)

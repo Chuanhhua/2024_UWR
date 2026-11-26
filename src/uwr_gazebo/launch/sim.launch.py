@@ -2,15 +2,15 @@
 converter, sensor noise, where it spawns and the ROS-Gazebo bridge topics come
 from a config in uwr_gazebo/config/, picked by name (without .yaml):
 
-  ros2 launch uwr_gazebo sim.launch.py config:=sim_7sonar   # 7-sonar robot, zig-zag start
-  ros2 launch uwr_gazebo sim.launch.py config:=sim_3sonar   # 3-sonar robot, pool centre
+  ros2 launch uwr_gazebo sim.launch.py config:=gazebo_7sonar   # 7-sonar robot, zig-zag start
+  ros2 launch uwr_gazebo sim.launch.py config:=gazebo_3sonar   # 3-sonar robot, pool centre
 
   gui:=false   run Gazebo without its window (the sonars still work), for
                batch runs or a slow machine; Foxglove still shows everything
 
-Default: sim_7sonar. Start the matching filter with the same name; it reads
-its start pose and sonar range from the same config:
-  ros2 launch kalman_filter ekf_planar_sim.launch.py config:=sim_7sonar
+Default: gazebo_7sonar. Its planar EKF (fixed to gazebo_7sonar; it reads its start
+pose and sonar range from the same config):
+  ros2 launch kalman_filter ekf_planar_sim.launch.py
 
 Starts: Gazebo with the pool, robot_state_publisher, the robot spawn, the
 ROS-Gazebo bridge, the sonar converter and foxglove_bridge (ws://localhost:8765).
@@ -75,7 +75,10 @@ def make_sim(context):
 
     # turns the simulated sonar scans into what the filter reads
     converter = Node(package='uwr_gazebo', executable=cfg['sonar_converter'], output='screen',
-                     parameters=[{'use_sim_time': True}])
+                     parameters=[{'use_sim_time': True,
+                                  'sonar_dropout': float(noise['sonar_dropout']),
+                                  'sonar_outlier': float(noise['sonar_outlier']),
+                                  'sonar_seed': int(noise['sonar_seed'])}])
 
     # live connection for Foxglove: ws://localhost:8765
     foxglove = Node(package='foxglove_bridge', executable='foxglove_bridge', output='screen',
@@ -91,8 +94,8 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('gui', default_value='true',
                               description='false: run Gazebo without its window (much less CPU)'),
-        DeclareLaunchArgument('config', default_value='sim_7sonar',
+        DeclareLaunchArgument('config', default_value='gazebo_7sonar',
                               description='sim config name in uwr_gazebo/config/ '
-                                          '(without .yaml), e.g. sim_7sonar or sim_3sonar'),
+                                          '(without .yaml), e.g. gazebo_7sonar or gazebo_3sonar'),
         OpaqueFunction(function=make_sim),
     ])

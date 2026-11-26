@@ -1,12 +1,15 @@
-"""Planar EKF on the Gazebo sim. Pick the robot by config name (without .yaml):
+"""Planar EKF on the Gazebo sim (7-sonar robot), with uwr_gazebo sim.launch.py config:=gazebo_7sonar:
 
-  ros2 launch kalman_filter ekf_planar_sim.launch.py config:=sim_7sonar   # with uwr_gazebo sim.launch.py config:=sim_7sonar
-  ros2 launch kalman_filter ekf_planar_sim.launch.py config:=sim_3sonar   # with uwr_gazebo sim.launch.py config:=sim_3sonar
+  ros2 launch kalman_filter ekf_planar_sim.launch.py
 
-Default: sim_7sonar. Settings come from two files with that name:
-  kalman_filter/config/ekf_planar/<config>.yaml   the EKF: sonar topics and layout, sonar model
-  uwr_gazebo/config/<config>.yaml                 the sim: start pose (spawn) and sonar_max_range,
-                                                  so they are set in one place for both
+Every launch is recorded: bag_recorder records the EKF output, ground truth,
+IMU, sonars, TF and clock from launch into kf_runs/ekf_sim_<date>/. Ctrl+C
+closes the bag, so each launch is one bag (runs restarted with reset-run share it).
+
+Settings come from two files:
+  kalman_filter/config/ekf_planar/ekf_sim_7sonar.yaml   the EKF: sonar topics and layout, sonar model
+  uwr_gazebo/config/gazebo_7sonar.yaml                  the sim: start pose (spawn) and sonar_max_range,
+                                                        so they are set in one place for both
 """
 
 import os
@@ -14,19 +17,20 @@ import os
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
-def make_ekf(context):
-    # The sim config is read here in Python (a missing name fails with "No such file").
-    name = LaunchConfiguration("config").perform(context)
+def generate_launch_description():
     params_file = os.path.join(
-        get_package_share_directory("kalman_filter"), "config", "ekf_planar", name + ".yaml"
+        get_package_share_directory("kalman_filter"),
+        "config",
+        "ekf_planar",
+        "ekf_sim_7sonar.yaml",
     )
     with open(
-        os.path.join(get_package_share_directory("uwr_gazebo"), "config", name + ".yaml")
+        os.path.join(
+            get_package_share_directory("uwr_gazebo"), "config", "gazebo_7sonar.yaml"
+        )
     ) as f:
         sim = yaml.safe_load(f)
 
@@ -46,18 +50,26 @@ def make_ekf(context):
         output="screen",
         parameters=[params_file, from_sim],
     )
-    return [ekf_planar_node]
-
-
-def generate_launch_description():
-    return LaunchDescription(
-        [
-            DeclareLaunchArgument(
-                "config",
-                default_value="sim_7sonar",
-                description="config name (without .yaml) in kalman_filter/config/ekf_planar/ "
-                "and uwr_gazebo/config/, e.g. sim_7sonar or sim_3sonar",
-            ),
-            OpaqueFunction(function=make_ekf),
-        ]
+    recorder = Node(
+        package="kalman_filter",
+        executable="bag_recorder",
+        name="bag_recorder",
+        output="screen",
+        parameters=[
+            {
+                "prefix": "ekf_sim",
+                "topics": [
+                    "/ekf_planar/odom",
+                    "/ekf_planar/sonar_diag",
+                    "/pose_topic_gt",
+                    "/imu/data",
+                    "/tf",
+                    "/tf_static",
+                    "/clock",
+                ],
+                "regex": "/sonar/.*",
+                "use_sim_time": True,
+            }
+        ],
     )
+    return LaunchDescription([ekf_planar_node, recorder])

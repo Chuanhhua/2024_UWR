@@ -1,28 +1,29 @@
-"""Planar EKF on the real robot. Everything (topics, sonar layout, noise, start
-pose, TF) comes from a param file in kalman_filter/config/ekf_planar/, picked by
-name (without .yaml):
+"""Planar EKF on the real 7-sonar robot. Everything (topics, sonar layout,
+noise, start pose, TF) comes from kalman_filter/config/ekf_planar/ekf_real_7sonar.yaml:
 
-  ros2 launch kalman_filter ekf_planar_real.launch.py config:=real_7sonar
+  ros2 launch kalman_filter ekf_planar_real.launch.py
 
-Default: real_7sonar. Start the sonar and IMU drivers separately. The EKF
+Start the sonar and IMU drivers separately. The EKF
 publishes /ekf_planar/odom, /ekf_planar/sonar_diag and TF world -> base_link.
+
+Every launch is recorded: bag_recorder records the EKF output,
+IMU, sonars and TF from launch into kf_runs/ekf_real_<date>/. Ctrl+C closes
+the bag, so each launch is one bag.
 """
 
+import os
+
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    params_file = PathJoinSubstitution(
-        [
-            FindPackageShare("kalman_filter"),
-            "config",
-            "ekf_planar",
-            [LaunchConfiguration("config"), ".yaml"],
-        ]
+    params_file = os.path.join(
+        get_package_share_directory("kalman_filter"),
+        "config",
+        "ekf_planar",
+        "ekf_real_7sonar.yaml",
     )
 
     ekf_planar_node = Node(
@@ -33,14 +34,24 @@ def generate_launch_description():
         parameters=[params_file, {"use_sim_time": False}],
     )
 
-    return LaunchDescription(
-        [
-            DeclareLaunchArgument(
-                "config",
-                default_value="real_7sonar",
-                description="param file name in kalman_filter/config/ekf_planar/ "
-                "(without .yaml), e.g. real_7sonar",
-            ),
-            ekf_planar_node,
-        ]
+    recorder = Node(
+        package="kalman_filter",
+        executable="bag_recorder",
+        name="bag_recorder",
+        output="screen",
+        parameters=[
+            {
+                "prefix": "ekf_real",
+                "topics": [
+                    "/ekf_planar/odom",
+                    "/ekf_planar/sonar_diag",
+                    "/imu/data",
+                    "/tf",
+                    "/tf_static",
+                ],
+                "regex": "/sonar/.*",
+            }
+        ],
     )
+
+    return LaunchDescription([ekf_planar_node, recorder])

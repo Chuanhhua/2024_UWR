@@ -8,7 +8,7 @@
 # Ctrl+q inside the session stops everything cleanly.
 SESSION="${1:-uwr-sim-3sonar}"
 declare -A PREFILL=(
-    [sim]="ros2 launch uwr_gazebo sim.launch.py config:=sim_3sonar"
+    [sim]="ros2 launch uwr_gazebo sim.launch.py config:=gazebo_3sonar"
     [kf]='ros2 launch kalman_filter kf_3dof_sim_3sonar.launch.py csv_path:=$PIXI_PROJECT_ROOT/kf_runs/sim_'
 )
 source "$(dirname "${BASH_SOURCE[0]}")/sim_session.sh"

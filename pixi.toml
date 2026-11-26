@@ -70,4 +70,4 @@ push-left = { cmd = '''gz topic -t /world/pool/wrench/persistent -m gz.msgs.Enti
 push-right = { cmd = '''gz topic -t /world/pool/wrench/persistent -m gz.msgs.EntityWrench -p 'entity: {name: "uwr::base_link", type: LINK}, wrench: {force: {x: 1.0}}' ''', description = "Push robot to its right (pool +x), 1 N" }
 push-stop = { cmd = '''gz topic -t /world/pool/wrench/clear -m gz.msgs.Entity -p 'name: "uwr::base_link", type: LINK' ''', description = "Remove all pushing forces" }
 # New sim run without restarting: robot back to its spawn pose, EKF reset. pixi run reset-run [config]
-reset-run = { cmd = "python scripts/reset_run.py", description = "Put the sim robot back at its spawn pose and reset the planar EKF (config default sim_7sonar)" }
+reset-run = { cmd = "python scripts/reset_run.py", description = "Put the sim robot back at its spawn pose and reset the planar EKF (config default gazebo_7sonar)" }
